@@ -1,5 +1,6 @@
 
 import json
+import sys
 
 def compare_matrices_with_tolerance(file_path, key1, key2, tolerance=1e-6):
     with open(file_path, 'r') as file:
@@ -22,6 +23,21 @@ def compare_matrices_with_tolerance(file_path, key1, key2, tolerance=1e-6):
 
     print(f"The matrices {key1} and {key2} are identical within the tolerance of {tolerance}.")
 
-# Example usage
-compare_matrices_with_tolerance('./environment copy.json', 'g_image', 'g_image_test')
+def main():
+
+    # Check if exactly one argument (besides the program name) is given
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <input_filepath>")
+        sys.exit(1)  # Exit the program indicating an error
+
+    # Assign the command-line argument to a variable
+    input_filepath = sys.argv[1]
+
+    print(f"The input file path is: {input_filepath}")
+
+    # Example usage
+    compare_matrices_with_tolerance(input_filepath, 'g_image', 'g_image_test')
+
+if __name__ == '__main__':
+    main()
 
