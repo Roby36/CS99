@@ -1,13 +1,7 @@
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>  // For isspace()
-
-#include "utils.h"
 #include "parser.h"
 
-// #define DBG 1
+// #define PARS_DBG 1
 #define BUFF_SIZE 128 // Maximum buffer size for names of parameters
 
 FILE * dfp; // global debugging file pointer
@@ -27,6 +21,13 @@ static void insert_matrix(set_t * params, char ** last_token, const int columns,
 static set_t * parse_json_string(char * input_str);
 
 float ** parse_float_matrix(const int max_col, const int max_row, char ** token_start) {
+
+    #ifdef ASTCLCK
+    struct timeval start, end;
+    long seconds, microseconds;
+    double elapsed;
+    gettimeofday(&start, NULL); // Start clock 
+    #endif
 
     float ** M;       // Array of row pointers
     float curr_float; 
@@ -71,7 +72,7 @@ float ** parse_float_matrix(const int max_col, const int max_row, char ** token_
             }
         }
         // This generally terminates because **token_start == ']'
-        #ifdef DBG
+        #ifdef PARS_DBG
         // print_matrix_row(M, curr_col, curr_row);
         #endif
 
@@ -79,13 +80,19 @@ float ** parse_float_matrix(const int max_col, const int max_row, char ** token_
                 (*token_start)++; // Skip closed bracket and comma, aiming to reach next open bracket if possible
         }
         if (**token_start != arr_open) {
-            #ifdef DBG   // If we can't find an open bracket for the next row, END OF MATRIX
+            #ifdef PARS_DBG   // If we can't find an open bracket for the next row, END OF MATRIX
             printf("No open bracket found; parse_float_matrix terminates at curr_row = %d, curr_col = %d\n", curr_row, curr_col);
             #endif
             break;
         }
         curr_row++;
     }
+
+    #ifdef ASTCLCK
+    CALCULATE_ELAPSED_TIME(start, end, elapsed);
+    printf("\nparse_float_matrix took %.5f seconds\n", elapsed);
+    #endif
+
     return M; 
 }
 
@@ -103,7 +110,7 @@ void insert_matrix(set_t * params, char ** last_token, const int columns, const 
     float ** M = parse_float_matrix(columns, rows, last_token);
     set_insert(params, key, M); // insert matrix pointer in set
 
-    #ifdef DBG // TEST both retrieval from the set and matrix structure
+    #ifdef PARS_DBG // TEST both retrieval from the set and matrix structure
     printf("After parsing matrix with key = %s, *last_token = %c and saved matrix retrieved as:\n", key, **last_token);
     float ** test_matrix = set_find(params, key); //attempt to retrieve matrix by the key with which it was stored 
     print_matrix_to_file(stdout, key, test_matrix, rows, columns);
@@ -149,7 +156,7 @@ set_t * parse_json_string(char * input_str) {
         DEBUG_ERROR("Failed to insert key in the set");
     }
 
-    #ifdef DBG  // check that floats were effectively added to the set
+    #ifdef PARS_DBG  // check that floats were effectively added to the set
     float * test_value;
     if ((test_value = set_find(params, key)) == NULL) {
         DEBUG_ERROR("Error insertng into set; key could not be found");
@@ -170,30 +177,77 @@ set_t * parse_json_string(char * input_str) {
 
     insert_matrix(
         params, &last_token, 
-        calculate_steps(params, "x_min", "x_max", "r"), 
-        calculate_steps(params, "y_min", "y_max", "r")
+        calculate_steps(
+            * (float *) set_find(params, "x_min"),
+            * (float *) set_find(params, "x_max"),
+            * (float *) set_find(params, "r")
+            ), 
+        calculate_steps(
+            * (float *) set_find(params, "y_min"),
+            * (float *) set_find(params, "y_max"),
+            * (float *) set_find(params, "r")
+            )
     ); 
 
     return params;
 }
 
-set_t * load_json(const char * file_name) {
+Params * load_json(const char * file_name) {
 
     char * copy_str = store_file(file_name);
-    set_t * params = parse_json_string(copy_str);
+    set_t * params_set = parse_json_string(copy_str);
+
+    if (params_set == NULL) {
+        DEBUG_ERROR("Error extracting parameters from .json");
+        return NULL;
+    }
+
+    // Allocate space 
+    Params * params = malloc(sizeof(Params));
+    
+    // Extract parameters from the set, paying close attention to casting, and save them to struct 
+    params->r = * (float *) set_find(params_set, "r");
+    params->s = * (float *) set_find(params_set, "s");
+    params->x_max = * (float *) set_find(params_set, "x_max");
+    params->x_min = * (float *) set_find(params_set, "x_min");
+    params->y_min = * (float *) set_find(params_set, "y_min");
+    params->y_max = * (float *) set_find(params_set, "y_max");
+    params->x_g = * (float *) set_find(params_set, "x_g");
+    params->y_g = * (float *) set_find(params_set, "y_g");
+    params->x_s = * (float *) set_find(params_set, "x_s");
+    params->y_s = * (float *) set_find(params_set, "y_s");
+    params->g_max = * (float *) set_find(params_set, "g_max");
+
+    // Hard-code the division so it doesn't need to be carried out repeatedly
+    params->s_div_r = params->s / params->r;
+
+    // Calculate the total number of s_steps based on the input parameters
+    params->xs_steps = calculate_steps(params->x_min, params->x_max, params->s);
+    params->ys_steps = calculate_steps(params->y_min, params->y_max, params->s);
+    // Calculate the total number of r_steps based on the input parameters
+    params->xr_steps = calculate_steps(params->x_min, params->x_max, params->r);
+    params->yr_steps = calculate_steps(params->y_min, params->y_max, params->r);
+
+    params->num_obstacles = * (int *) set_find(params_set, "num_obstacles");
+    params->num_obstacle_parameters = * (int *) set_find(params_set, "num_obstacle_parameters");
+
+    // Extract already matrix containg g_image, handling conversions carefully
+    params->g_image = set_find(params_set, "g_image");
+    params->elliptical_obstacles = set_find(params_set, "elliptical_obstacles");
+    
+    /** ISSUE: Set entries tedious to delete manually since some are float **, some float * */
 
     //?? Can we free(copy_str); here ??// 
 
     return params;
-
 }
 
 
-#ifdef DBG // Execute as standalone program for debugging only
+#ifdef PARS_DBG // Execute as standalone program for debugging only
 
 int main(){   
 
-    const char * input_json = "./environment copy.json";
+    const char * input_json = "./params.json";
     const char * output_test = "./test.txt";
     
     if ((dfp = fopen(output_test, "w")) == NULL) {
@@ -202,21 +256,20 @@ int main(){
     }
 
     // Testing:
-    set_t * params = load_json(input_json);
+    Params * params = load_json(input_json);
     // write test matrix to same .json file
     write_json( 
-        input_json, "g_image_test",
-        set_find(params, "g_image"),
-        calculate_steps(params, "y_min", "y_max", "r"),
-        calculate_steps(params, "x_min", "x_max", "r")
+        input_json, "g_image_test", params->g_image,
+        calculate_steps(params->y_min, params->y_max, params->r),
+        calculate_steps(params->x_min, params->x_max, params->r)
     );
 
     // Matrices can be manually removed and free'd from the set for now
     // Tedious to free them through set_iterate due to the different parameters involved 
     free_float_matrix(
-        set_find(params, "g_image"), 
-        calculate_steps(params, "y_min", "y_max", "r"),
-        calculate_steps(params, "x_min", "x_max", "r")
+        params->g_image,
+        calculate_steps(params->y_min, params->y_max, params->r),
+        calculate_steps(params->x_min, params->x_max, params->r)
     ); // example deleting g_image matrix
 
     fclose(dfp);

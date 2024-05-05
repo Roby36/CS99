@@ -24,7 +24,8 @@ def main():
         params = json.load(file)
     # Delete entries to delete
     for entry in entries_to_delete:
-        del params[entry]
+        if entry in params:
+            del params[entry]
     # Rewrite the parameters in the json file
     with open(input_filepath, 'w') as file:
         json.dump(params, file, indent=4)

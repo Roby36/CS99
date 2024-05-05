@@ -1,22 +1,7 @@
 
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include "astar.h"
 
-#include "parser.h"
-#include "utils.h"
-
-#define ASTDBG 1 // Debug flag to activate print statements 
-
-#define SQRT2 1.4142135623730951
-#define FLOAT_TOL 0.001
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
-#define D_ADJACENT(x1, y1, x2, y2) \
-    (((x1) == (x2) && (y1) == (y2)) ? 0.0f : \
-     ((x1) != (x2) && (y1) != (y2)) ? SQRT2 : \
-     1.0f)
+// #define ASTDBG 1 // Debug flag to activate print statements 
 
 /* Name of parameter containing path written to .json file */
 const char * output_path_param_name = "A_star_output_path"; // name of parameter holding path
@@ -32,61 +17,9 @@ typedef struct {
     float ** point_list;
 } Optimal_Path;
 
-/* Keep all parameters extracted from .json file in clean, compact struct */
-typedef struct {
-
-    float r;
-    float s;
-    float x_max;
-    float x_min;
-    float y_min;
-    float y_max;
-    float x_g;
-    float y_g;
-    float x_s;
-    float y_s;
-    float g_max;
-
-    int s_div_r;
-    int xs_steps;
-    int ys_steps;
-    int xr_steps;
-    int yr_steps;
-    int num_obstacles;
-    int num_obstacle_parameters;
-
-    float ** elliptical_obstacles;
-    float ** g_image;
-
-} Params;
-
-typedef struct vertex {
-    int x_s, y_s; // discretized s-steps; vertex would be located at matrix entry M[y_s][x_s]
-    struct vertex * parent; // defaults to NULL is no parent
-    float g_score; 
-    float f_score; // used in priority queue
-    struct vertex * next; // Pointer to the next vertex in priority queue
-    bool is_evaluated; // keeps track of whether vertex added to closed set or not
-
-} vertex_t;
-
-typedef struct open_set {
-    vertex_t *head;  // Pointer to the head of the priority queue
-} open_set_t;
-
 /* Internal functions prototypes & helpers */
 Optimal_Path * backtrack_path(Params * params, vertex_t * goal_vertex);
-Params * extract_parameters(const char * input_json_path);
-void open_set_testing();
 void sqrt_dist_test();
-void print_open_set(open_set_t *set);
-
-/* Functions for open set / priority queue */
-void insert_sorted(open_set_t *set, vertex_t *new_vertex);
-vertex_t* extract_sorted(open_set_t *set, vertex_t *vertex);
-vertex_t *dequeue_min(open_set_t *set);
-bool is_in_open_set(open_set_t *set, vertex_t *vertex);
-void free_open_set(open_set_t *set); 
 
 /** Cost function implementation 
  * Now we have two discrete, adjacent points (x_1,y_1) and (x_2,y_2), in the s-step sized state grid for the robot.
@@ -154,6 +87,13 @@ Optimal_Path * A_star(
     float (*h) (int, int, int, int, Params *, Config * ),
     float (*c) (int, int, int, int, Params *, Config * ))
 {
+    #ifdef ASTCLCK
+    struct timeval start, end;
+    long seconds, microseconds;
+    double elapsed;
+    gettimeofday(&start, NULL); // Start clock 
+    #endif
+
     // Initialize optimal path to default 
     Optimal_Path * opt_path = NULL;
 
@@ -203,13 +143,13 @@ Optimal_Path * A_star(
     );
 
     // Start priority queue, intitialized to the start vertex
-    open_set_t * open_set = malloc(sizeof(open_set_t));
-    open_set->head = NULL;
+    open_set_t * open_set = open_set_new(); /** CAREFUL: not checking for NULL pointer return */
     insert_sorted(open_set, start_vertex);
-
     // Start main iteration, checking whether the open set is empty 
-    while (open_set->head != NULL) {
+    while (!open_set_is_empty(open_set)) {
         vertex_t * current_vertex = dequeue_min(open_set);
+        // flag the current vertex as evaluated (like adding it to closed set)
+        current_vertex->is_evaluated = true;
         // keep the current x,y coordinates as local variables for clarity
         int x_c = current_vertex->x_s;
         int y_c = current_vertex->y_s;
@@ -221,9 +161,7 @@ Optimal_Path * A_star(
             opt_path = backtrack_path(params, current_vertex);
             break; // break out of while loop so that you can first clean up, and then return the saved path
         }
-        // flag the current vertex as evaluated (like adding it to closed set)
-        current_vertex->is_evaluated = true;
-
+    
         /** Now start generating outneighbors, considering that 
          * 1) If we have a g_image under FLOAT_TOL, signaling a zero value, the state is inaccessible
          * 2) If the boundaries go beyond matrix capacity, the state is inaccessible
@@ -283,6 +221,17 @@ Optimal_Path * A_star(
     } 
     free(S);
 
+    #ifdef ASTCLCK
+    CALCULATE_ELAPSED_TIME(start, end, elapsed);
+
+    printf("\nA* with parameters\n"
+        "\t(x_g, y_g) = (%f, %f)\n"
+        "\tr = %f, s = %f\n"
+        "\ta = %f, b = %f\n"
+        "took %.5f seconds\n", 
+    params->x_g, params->y_g, params->r, params->s, config->a, config->b, elapsed);
+    #endif
+
     return opt_path;
 
 }
@@ -291,6 +240,13 @@ Optimal_Path * A_star(
 /* Main function & testing from here below */
 /* Takes as argument the path to the json file to read parameters from */
 int main(int argc, char *argv[]) {
+
+    #ifdef ASTCLCK
+    struct timeval start, end;
+    long seconds, microseconds;
+    double elapsed;
+    gettimeofday(&start, NULL); // Start clock 
+    #endif
 
     char * input_json_path;
     char * endptr;  // Pointer to check conversion status
@@ -336,8 +292,13 @@ int main(int argc, char *argv[]) {
     printf("Running A-star with parameters a = %f, b = %f\n", a, b); 
     #endif
 
+    #ifdef ASTCLCK
+    CALCULATE_ELAPSED_TIME(start, end, elapsed);
+    printf("\nInvoking load_json %.5f seconds from start of astar main() program execution\n", elapsed);
+    #endif
+
     // Extract parameters
-    params = extract_parameters(input_json_path);
+    params = load_json(input_json_path);
 
     if (params == NULL) {
         DEBUG_ERROR("extract_parameters returned NULL, exiting...");
@@ -355,6 +316,11 @@ int main(int argc, char *argv[]) {
 
     #ifdef ASTDBG
     printf("Initializing A* with grid size: %dx%d\n", params->xs_steps, params->ys_steps);
+    #endif
+
+    #ifdef ASTCLCK
+    CALCULATE_ELAPSED_TIME(start, end, elapsed);
+    printf("\nInvoking A* %.5f seconds from start of astar main() program execution\n", elapsed);
     #endif
 
     // Invoke the A* algorithm on all the inputs generated
@@ -379,54 +345,6 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
-Params * extract_parameters(const char * input_json_path) {
-
-    // Use parser API to load all the parameters into a set data structure
-    set_t * params_set = load_json(input_json_path);
-
-    if (params_set == NULL) {
-        DEBUG_ERROR("Error extracting parameters from .json");
-        return NULL;
-    }
-
-    // Allocate space 
-    Params * params = malloc(sizeof(Params));
-    
-    // Extract parameters from the set, paying close attention to casting, and save them to struct 
-    params->r = * (float *) set_find(params_set, "r");
-    params->s = * (float *) set_find(params_set, "s");
-    params->x_max = * (float *) set_find(params_set, "x_max");
-    params->x_min = * (float *) set_find(params_set, "x_min");
-    params->y_min = * (float *) set_find(params_set, "y_min");
-    params->y_max = * (float *) set_find(params_set, "y_max");
-    params->x_g = * (float *) set_find(params_set, "x_g");
-    params->y_g = * (float *) set_find(params_set, "y_g");
-    params->x_s = * (float *) set_find(params_set, "x_s");
-    params->y_s = * (float *) set_find(params_set, "y_s");
-    params->g_max = * (float *) set_find(params_set, "g_max");
-
-    // Hard-code the division so it doesn't need to be carried out repeatedly
-    params->s_div_r = params->s / params->r;
-
-    // Calculate the total number of s_steps based on the input parameters
-    params->xs_steps = calculate_steps(params_set, "x_min", "x_max", "s");
-    params->ys_steps = calculate_steps(params_set, "y_min", "y_max", "s");
-    // Calculate the total number of r_steps based on the input parameters
-    params->xr_steps = calculate_steps(params_set, "x_min", "x_max", "r");
-    params->yr_steps = calculate_steps(params_set, "y_min", "y_max", "r");
-
-    params->num_obstacles = * (int *) set_find(params_set, "num_obstacles");
-    params->num_obstacle_parameters = * (int *) set_find(params_set, "num_obstacle_parameters");
-
-    // Extract already matrix containg g_image, handling conversions carefully
-    params->g_image = set_find(params_set, "g_image");
-    params->elliptical_obstacles = set_find(params_set, "elliptical_obstacles");
-    
-    return params;
-
-}
-
 
 /** Path backtracking **/
 
@@ -470,151 +388,6 @@ Optimal_Path * backtrack_path(Params *params, vertex_t *goal_vertex) {
 }
 
 
-
-/** Open set / priority queue functions **/
-
-void insert_sorted(open_set_t *set, vertex_t *new_vertex) {
-
-    // Debug before insertion
-    #ifdef ASTDBG
-    printf("Inserting vertex (%d, %d) with f_score: %f\n", new_vertex->x_s, new_vertex->y_s, new_vertex->f_score);
-    #endif
-
-    // Insertion logic 
-    vertex_t **tracer = &(set->head);
-    while (*tracer != NULL && (*tracer)->f_score < new_vertex->f_score) {
-        tracer = &(*tracer)->next;
-    }
-
-    new_vertex->next = *tracer;
-    *tracer = new_vertex;
-}
-
-vertex_t* extract_sorted(open_set_t *set, vertex_t *vertex) {
-
-    // Start at the head of the list
-    vertex_t **tracer = &(set->head);
-    // Traverse the list to find the target vertex
-    while (*tracer != NULL && *tracer != vertex) {
-        tracer = &(*tracer)->next;
-    }
-
-    // Check if the vertex was found
-    if (*tracer == NULL) {
-        // Vertex not found
-        return NULL;
-    }
-
-    // Remove the vertex from the list
-    vertex_t *extracted_vertex = *tracer; // This is the vertex to be extracted
-    *tracer = extracted_vertex->next; // Bypass the extracted vertex in the list
-    extracted_vertex->next = NULL; // Clear the next pointer of the extracted vertex
-    return extracted_vertex; // Return the pointer to the extracted vertex
-}
-
-
-vertex_t *dequeue_min(open_set_t *set) {
-
-    // Debug before dequeueing
-    #ifdef ASTDBG
-    if (set->head) {
-        printf("Dequeueing vertex (%d, %d) with f_score: %f\n", set->head->x_s, set->head->y_s, set->head->f_score);
-    }
-    #endif
-
-    // Dequeue logic 
-    if (set->head == NULL) return NULL;
-    vertex_t *min_vertex = set->head;
-    set->head = set->head->next;
-    return min_vertex;
-}
-
-bool is_in_open_set(open_set_t *set, vertex_t *vertex) {
-
-    vertex_t *current = set->head;
-    while (current != NULL) {
-        if (current == vertex) {
-            return true;
-        }
-        current = current->next;
-    }
-    return false;
-}
-
-// Function to free the open set: NOT USED since verteces systematically deallocated from grid already
-void free_open_set(open_set_t *set) {
-    vertex_t *current = set->head;
-    while (current != NULL) {
-        vertex_t *next = current->next;
-        free(current);
-        current = next;
-    }
-    free(set);
-}
-
-
-
-/* Testing funtions & helpers */
-
-// Function to print the vertices in the open set
-void print_open_set(open_set_t *set) {
-    vertex_t *current = set->head;
-    while (current != NULL) {
-        printf("Vertex at (%d, %d) with f_score: %f\n", current->x_s, current->y_s, current->f_score);
-        current = current->next;
-    }
-}
-
-void open_set_testing() {
-    // Initialize the open set
-    open_set_t *set = malloc(sizeof(open_set_t));
-    set->head = NULL;
-
-    // Create and insert some vertices
-    vertex_t *vertex1 = malloc(sizeof(vertex_t));
-    vertex1->x_s = 1; vertex1->y_s = 1; vertex1->f_score = 10.5;
-    insert_sorted(set, vertex1);
-
-    vertex_t *vertex2 = malloc(sizeof(vertex_t));
-    vertex2->x_s = 2; vertex2->y_s = 2; vertex2->f_score = 5.5;
-    insert_sorted(set, vertex2);
-
-    vertex_t *vertex3 = malloc(sizeof(vertex_t));
-    vertex3->x_s = 3; vertex3->y_s = 3; vertex3->f_score = 7.5;
-    insert_sorted(set, vertex3);
-
-    vertex_t *vertex4 = malloc(sizeof(vertex_t));
-    vertex3->x_s = 3; vertex3->y_s = 3; vertex4->f_score = 40;
-    insert_sorted(set, vertex4);
-
-    vertex_t *vertex5 = malloc(sizeof(vertex_t));
-    vertex3->x_s = 3; vertex3->y_s = 3; vertex5->f_score = 112;
-    insert_sorted(set, vertex5);
-
-    vertex_t *vertex6 = malloc(sizeof(vertex_t));
-    vertex3->x_s = 3; vertex3->y_s = 3; vertex6->f_score = 0.5;
-    insert_sorted(set, vertex6);
-
-    vertex_t *vertex7 = malloc(sizeof(vertex_t));
-    vertex3->x_s = 3; vertex3->y_s = 3; vertex7->f_score = 65;
-    insert_sorted(set, vertex7);
-
-    // Print the open set
-    print_open_set(set);
-
-    // Dequeue the minimum and print the updated open set
-    vertex_t *min_vertex = dequeue_min(set);
-    printf("Dequeued Vertex: (%d, %d) with f_score: %f\n", min_vertex->x_s, min_vertex->y_s, min_vertex->f_score);
-    print_open_set(set);
-
-    min_vertex = dequeue_min(set);
-    printf("Dequeued Vertex: (%d, %d) with f_score: %f\n", min_vertex->x_s, min_vertex->y_s, min_vertex->f_score);
-    print_open_set(set);
-
-    // Free the minimum vertex and the open set
-    free(min_vertex);
-    free_open_set(set);
-}
 
 
 void sqrt_dist_test() {
