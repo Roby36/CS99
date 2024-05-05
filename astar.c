@@ -128,7 +128,8 @@ Optimal_Path * A_star(
             new_vertex->parent = NULL;
             new_vertex->g_score = INFINITY;
             new_vertex->f_score = INFINITY;
-            new_vertex->next = NULL; 
+            new_vertex->fib_node = NULL;
+            // new_vertex->next = NULL; 
             new_vertex->is_evaluated = false; // this means that element wasn't yet added to closed set
             // Save malloc'd vertex to matrix of vertex pointers 
             S[ys][xs] = new_vertex;
