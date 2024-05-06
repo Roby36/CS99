@@ -2,6 +2,7 @@
 #include "astar.h"
 
 // #define ASTDBG 1 // Debug flag to activate print statements 
+#define AST_UT 1    // Flag for A_star unit test
 
 /* Name of parameter containing path written to .json file */
 const char * output_path_param_name = "A_star_output_path"; // name of parameter holding path
@@ -15,11 +16,13 @@ typedef struct {
 typedef struct {
     int l;
     float ** point_list;
+
+    float len;
+    float g_image_riemann_tot;
 } Optimal_Path;
 
 /* Internal functions prototypes & helpers */
-Optimal_Path * backtrack_path(Params * params, vertex_t * goal_vertex);
-void sqrt_dist_test();
+static Optimal_Path * backtrack_path(Params * params, vertex_t * goal_vertex);
 
 /** Cost function implementation 
  * Now we have two discrete, adjacent points (x_1,y_1) and (x_2,y_2), in the s-step sized state grid for the robot.
@@ -27,14 +30,17 @@ void sqrt_dist_test();
  * compute the Riemann sum for the integral between the two adjacent points on the grid by accesing matrix entries,
  * and linearly combine it with path length to compute overall cost function between two adjacent states in the grid. 
 */
-float edge_cost(
+static inline float len(
     int x_1, int y_1, int x_2, int y_2,
-    Params * params,
-    Config * config) {
-    
-    // Calculate the total distance between the two discrete points 
-    float l = params->s * D_ADJACENT(x_1, y_1, x_2, y_2); // Use s as scaling factor
+    Params * params) 
+{
+    return (params->s * D_ADJACENT(x_1, y_1, x_2, y_2)); // Use s as scaling factor
+}
 
+static float g_image_riemann_sum(
+    int x_1, int y_1, int x_2, int y_2,
+    Params * params) 
+{
     // Determine what dimensions changed
     int dx = (x_1 != x_2);
     int dy = (y_1 != y_2);
@@ -59,6 +65,17 @@ float edge_cost(
     // Multiply by the average lengh of each r-step to get the uncertainty accumulated 
     float u = params->r * D_ADJACENT(x_1, y_1, x_2, y_2) * rs;
 
+    return u;
+}
+
+float edge_cost(
+    int x_1, int y_1, int x_2, int y_2,
+    Params * params,
+    Config * config) 
+{
+    float u = g_image_riemann_sum(x_1, y_1, x_2, y_2, params); // uncertainty accumulation
+    float l = len(x_1, y_1, x_2, y_2, params);  // path length
+
     // Finally take a linear combination using the fixed parameters a,b
     float c = (config->a * u) + (config->b * l);
     return c;
@@ -68,7 +85,8 @@ float edge_cost(
 float heuristic(
     int x_n, int y_n, int x_g, int y_g,
     Params * params,
-    Config * config) {
+    Config * config) 
+{
     // First determine the total steps in the x and y directions
     int dx = abs(x_g - x_n);
     int dy = abs(y_g - y_n);
@@ -79,13 +97,13 @@ float heuristic(
     return h;
 }
 
-
 /**************** Main A* algorithm implementation ****************/
 Optimal_Path * A_star(
     Params * params,
     Config * config,
     float (*h) (int, int, int, int, Params *, Config * ),
-    float (*c) (int, int, int, int, Params *, Config * ))
+    float (*c) (int, int, int, int, Params *, Config * ),
+    float float_tol)
 {
     #ifdef ASTCLCK
     struct timeval start, end;
@@ -173,7 +191,7 @@ Optimal_Path * A_star(
             int y_n = y_c + dy;
             // Check accessibility conditions
             if (x_n < 0 || x_n >= params->xs_steps || y_n < 0 || y_n >= params->ys_steps ||
-                params->g_image[(params->s_div_r) * y_n][(params->s_div_r) * x_n] < FLOAT_TOL) {
+                params->g_image[(params->s_div_r) * y_n][(params->s_div_r) * x_n] < float_tol) {
                 continue; 
             }
             // Now that we know that the vertex can be accessed, we can extract it 
@@ -227,18 +245,25 @@ Optimal_Path * A_star(
     #ifdef ASTCLCK
     CALCULATE_ELAPSED_TIME(start, end, elapsed);
 
-    printf("\nA* with parameters\n"
+    printf("\nA* terminated with inputs:\n"
         "\t(x_g, y_g) = (%f, %f)\n"
         "\tr = %f, s = %f\n"
         "\ta = %f, b = %f\n"
-        "took %.5f seconds\n", 
-    params->x_g, params->y_g, params->r, params->s, config->a, config->b, elapsed);
+        "\tfloat tolerance = %f\n"
+        "\nOutput path:\n"
+        "\tcumulative length: %f\n" 
+        "\tg_image Riemann sum (accumulated uncertainty): %f\n"
+        "\nTime elapsed:\n"
+        "\t%.5f seconds\n\n", 
+    params->x_g, params->y_g, params->r, params->s, config->a, config->b, 
+    float_tol, opt_path->len, opt_path->g_image_riemann_tot, elapsed
+    );
     #endif
 
     return opt_path;
-
 }
 
+#ifdef AST_UT
 
 /* Main function & testing from here below */
 /* Takes as argument the path to the json file to read parameters from */
@@ -327,7 +352,7 @@ int main(int argc, char *argv[]) {
     #endif
 
     // Invoke the A* algorithm on all the inputs generated
-    opt_path = A_star(params, config, heuristic, edge_cost);
+    opt_path = A_star(params, config, heuristic, edge_cost, 0.1);
     if (opt_path == NULL) {
         DEBUG_ERROR("A_star returned NULL path. Exiting...");
         exit(2);
@@ -349,11 +374,19 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+#endif
+
 /** Path backtracking **/
 
 Optimal_Path * backtrack_path(Params *params, vertex_t *goal_vertex) {
+    
+    int path_length  = 0;       // number of discrete steps
+    float len_cumul  = 0.0f;    // cumulative length of path, scaled up
+    float riem_cumul = 0.0f;    // cumulative rieamnn sum for g_image buildup, scaled up
+    int x_curr, y_curr;         // backtracking coordinates
+    int x_next, y_next;         
+
     // First, find the length of the path by traversing from goal to start
-    int path_length = 0;
     vertex_t *current_vertex = goal_vertex;
     while (current_vertex != NULL) {
         path_length++;
@@ -376,42 +409,35 @@ Optimal_Path * backtrack_path(Params *params, vertex_t *goal_vertex) {
     // Backtrack from goal to start and store the path in reverse
     current_vertex = goal_vertex;
     for (int i = path_length - 1; i >= 0; i--) {
-        opt_path->point_list[i][0] = params->x_min + (current_vertex->x_s * params->s); // Convert x_s back to x
-        opt_path->point_list[i][1] = params->y_min + (current_vertex->y_s * params->s); // Convert y_s back to y
+
+        // Extract coordinates from current vertex and parent if there is one
+        x_curr = x_next = current_vertex->x_s;
+        y_curr = y_next = current_vertex->y_s;
+        if (current_vertex->parent != NULL) {
+            x_next = current_vertex->parent->x_s;
+            y_next = current_vertex->parent->y_s;
+        }
+
+        // Re-compute length and Riemann sum as they were originally computed, this time without the constants a,b
+        len_cumul  +=                 len(x_next, y_next, x_curr, y_curr, params);
+        riem_cumul += g_image_riemann_sum(x_next, y_next, x_curr, y_curr, params);
+
+        // Record points in the array containing the path
+        opt_path->point_list[i][0] = params->x_min + (x_curr * params->s); // Convert x_s back to x
+        opt_path->point_list[i][1] = params->y_min + (y_curr * params->s); // Convert y_s back to y
 
         #ifdef ASTDBG
         printf("Backtracking path point[%d]: (%.2f, %.2f)\n", i, opt_path->point_list[i][0], opt_path->point_list[i][1]);
         #endif
-        
-        current_vertex = current_vertex->parent;
+
+        current_vertex = current_vertex->parent;    // iterate backwards through vertices on optimal path
     }
 
+    // Set elements for the path
+    opt_path->g_image_riemann_tot = riem_cumul;
+    opt_path->len = len_cumul;
     opt_path->l = path_length;
+
     return opt_path;
 }
-
-
-
-
-void sqrt_dist_test() {
-    printf("Distance (same points): %f\n", D_ADJACENT(1, 1, 1, 1));
-    printf("Distance (horizontal adjacent): %f\n", D_ADJACENT(1, 1, 2, 1));
-    printf("Distance (vertical adjacent): %f\n", D_ADJACENT(1, 1, 1, 2));
-    printf("Distance (diagonal adjacent): %f\n", D_ADJACENT(1, 1, 2, 2));
-}
-
-/* Euclidean distance between two adjacent points in a UNIT sized grid, taking in integers */
-/* If applied on two ADJACENT s-step points, requires multiplication by s etc. */
-/* Later converted to macro-like function */
-/*
-float d_adjacent(int x_1, int y_1, int x_2, int y_2) {
-    int state = (x_1 != x_2) + (y_1 != y_2);
-    switch (state) {
-        case 0: return 0; // same coordinates
-        case 1: return 1; // only displaced in one dimension
-        case 2: return SQRT2; // displaced in both dimensions
-    }
-}
-*/
-
 
