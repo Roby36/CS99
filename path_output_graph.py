@@ -21,7 +21,7 @@ def plot_A_star_output_path(path, ax, z_height=0, color='orange'):
     z_coords = [z_height] * len(path)
     
     # Plot the path
-    ax.plot(x_coords, y_coords, z_coords, color=color, marker='o', linestyle='-', markersize=5, linewidth=2, label='A* Path')
+    ax.plot(x_coords, y_coords, z_coords, color=color, marker='o', linestyle='-', markersize=1, linewidth=1, label='A* Path')
 
 # Main routine handling ALL graphing procedures:
 def generate_path_n_surface_graph(params, X, Y,
