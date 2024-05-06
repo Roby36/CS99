@@ -197,10 +197,13 @@ Optimal_Path * A_star(
             neighb_vertex->parent = current_vertex;
             neighb_vertex->g_score = tent_g;
             neighb_vertex->f_score = tent_g + h(x_n, y_n, x_goal_step, y_goal_step, params, config);
-            // Ensure the vertex is extracted to reflect the update in f_score (no collateral effects if not in open_set)
-            extract_sorted(open_set, neighb_vertex);
-            // Now we are guaranteed that the vertex is out of the open set, thus can add it unconditionally
-            insert_sorted(open_set, neighb_vertex); 
+
+            /** CRITICAL: If the vertex is already in the min heap, dedrease key, otherwise add it */
+            if (neighb_vertex->minheap_node) {
+                decrease_key(open_set, neighb_vertex->minheap_node, neighb_vertex->f_score);
+            } else {
+                insert_sorted(open_set, neighb_vertex);
+            }
         }
         }
     }
