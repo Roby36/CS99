@@ -9,8 +9,6 @@
 #include <string.h>
 #include <ctype.h>  // For isspace()
 
-#define ASTCLCK 1 // Print statements measuring time for A-star execution
-
 /* Macros */
 #define SQRT2 1.4142135623730951
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

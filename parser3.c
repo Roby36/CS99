@@ -2,8 +2,6 @@
 #include "parser.h"
 #include "./cJSON/cJSON.h"
 
-// #define PARS_DBG 1
-
 /* Static Helpers */
 static char * store_file(const char * file_name);
 static void print_matrix_to_file(FILE *fp, const char* key, float** matrix, int rows, int cols);

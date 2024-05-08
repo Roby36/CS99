@@ -8,8 +8,7 @@
 #include <time.h>
 
 #include "vertex.h"
-
-// #define MH_DBG 1 // unit testing 
+#include "commonmacros.h"
 
 /* Interface for the open set / priority queue used by A* */
 

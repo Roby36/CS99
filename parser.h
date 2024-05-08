@@ -2,6 +2,7 @@
 #pragma once
 
 #include "utils.h"
+#include "commonmacros.h"
 
 /* Keep all parameters extracted from .json file in clean, compact struct, which will be passed to A* */
 typedef struct {

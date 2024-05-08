@@ -1,28 +1,11 @@
 
 #include "astar.h"
 
-// #define ASTDBG 1 // Debug flag to activate print statements 
-#define AST_UT 1    // Flag for A_star unit test
-
 /* Name of parameter containing path written to .json file */
-const char * output_path_param_name = "A_star_output_path"; // name of parameter holding path
-
-/* Keep configuration parameters in a wrappable, versatile way */
-typedef struct {
-    float a;
-    float b;
-} Config;
-
-typedef struct {
-    int l;
-    float ** point_list;
-
-    float len;
-    float g_image_riemann_tot;
-} Optimal_Path;
+static const char * output_path_param_name = "A_star_output_path";
 
 /* Internal functions prototypes & helpers */
-static Optimal_Path * backtrack_path(Params * params, vertex_t * goal_vertex);
+static void backtrack_path(Params *params, vertex_t *goal_vertex, Optimal_Path * opt_path);
 
 /** Cost function implementation 
  * Now we have two discrete, adjacent points (x_1,y_1) and (x_2,y_2), in the s-step sized state grid for the robot.
@@ -98,9 +81,10 @@ float heuristic(
 }
 
 /**************** Main A* algorithm implementation ****************/
-Optimal_Path * A_star(
+void A_star(
     Params * params,
     Config * config,
+    Optimal_Path * opt_path,
     float (*h) (int, int, int, int, Params *, Config * ),
     float (*c) (int, int, int, int, Params *, Config * ),
     float float_tol)
@@ -112,8 +96,11 @@ Optimal_Path * A_star(
     gettimeofday(&start, NULL); // Start clock 
     #endif
 
-    // Initialize optimal path to default 
-    Optimal_Path * opt_path = NULL;
+    // Check first that we ahve properly computed the image of g
+    if (params->g_image == NULL) {
+        DEBUG_ERROR("params->g_image = NULL");
+        return;
+    }
 
     // Convert start and goal coordinates to the relative s-steps
     const int x_start_step = (int) (params->x_s - params->x_min) / params->s;
@@ -176,7 +163,7 @@ Optimal_Path * A_star(
             printf("Goal reached at (%d, %d) with path cost: %f\n", x_c, y_c, current_vertex->g_score);
             #endif
             /** Reconstruct & assign path **/
-            opt_path = backtrack_path(params, current_vertex);
+            backtrack_path(params, current_vertex, opt_path);
             break; // break out of while loop so that you can first clean up, and then return the saved path
         }
     
@@ -259,8 +246,6 @@ Optimal_Path * A_star(
     float_tol, opt_path->len, opt_path->g_image_riemann_tot, elapsed
     );
     #endif
-
-    return opt_path;
 }
 
 #ifdef AST_UT
@@ -346,15 +331,18 @@ int main(int argc, char *argv[]) {
     printf("Initializing A* with grid size: %dx%d\n", params->xs_steps, params->ys_steps);
     #endif
 
+    // Allocate memory for the path struct
+    Optimal_Path * opt_path = malloc(sizeof(Optimal_Path));
+
     #ifdef ASTCLCK
     CALCULATE_ELAPSED_TIME(start, end, elapsed);
     printf("\nInvoking A* %.5f seconds from start of astar main() program execution\n", elapsed);
     #endif
 
     // Invoke the A* algorithm on all the inputs generated
-    opt_path = A_star(params, config, heuristic, edge_cost, 0.1);
-    if (opt_path == NULL) {
-        DEBUG_ERROR("A_star returned NULL path. Exiting...");
+    A_star(params, config, opt_path, heuristic, edge_cost, 0.1);
+    if (opt_path->point_list == NULL) {
+        DEBUG_ERROR("A_star returned NULL opt_path->point_list. Exiting...");
         exit(2);
     }
 
@@ -363,11 +351,9 @@ int main(int argc, char *argv[]) {
 
     // Clean up
     free(input_json_path);
-
     free(config);
-
+    free_point_array(opt_path);
     free(opt_path);
-
     /** TODO: Find ways to clean up the params struct; probably manual thorough cleanup required for grids */
     free(params);
 
@@ -376,9 +362,35 @@ int main(int argc, char *argv[]) {
 
 #endif
 
-/** Path backtracking **/
 
-Optimal_Path * backtrack_path(Params *params, vertex_t *goal_vertex) {
+/* Given already-malloc'd path struct with SET length, allocates internal */
+void allocate_point_array() {
+    // not needed for now since handled internally by backtrack_path
+}
+
+/* Given already-malloc'd path struct with SET length, deallocates internal point list */
+void free_point_array(Optimal_Path * opt_path) {
+
+    // Verify that both path struct and internal point list are accessible 
+    if (opt_path == NULL || opt_path->point_list == NULL || opt_path->l == 0) {
+        DEBUG_ERROR("free_point_array: opt_path = NULL OR opt_path->point_list = NULL OR opt_path->l = 0");
+        return;
+    }
+
+    // Begin iteration through array
+    for (int i = 0; i < opt_path->l; i++) {
+        // Verify that we are actually free'ing
+        if (opt_path->point_list[i] == NULL) {
+            DEBUG_ERROR("free_point_array: unexpected NULL value for opt_path->point_list[i]");
+        }
+        // Free the array
+        free(opt_path->point_list[i]);
+    }
+}
+
+/** Path backtracking **/
+/** IMPORTANT: Takes an already-allocated Optimal_Path struct, but responsible to allocate internal point list */
+void backtrack_path(Params *params, vertex_t *goal_vertex, Optimal_Path * opt_path) {
     
     int path_length  = 0;       // number of discrete steps
     float len_cumul  = 0.0f;    // cumulative length of path, scaled up
@@ -393,8 +405,8 @@ Optimal_Path * backtrack_path(Params *params, vertex_t *goal_vertex) {
         current_vertex = current_vertex->parent;
     }
 
-    // Allocate memory for the path struct
-    Optimal_Path * opt_path = malloc(sizeof(Optimal_Path));
+    // Set length for path struct
+    opt_path->l = path_length;
 
     // Allocate memory for the points list
     opt_path->point_list = malloc(sizeof(float *) * path_length);
@@ -402,7 +414,7 @@ Optimal_Path * backtrack_path(Params *params, vertex_t *goal_vertex) {
         opt_path->point_list[i] = malloc(sizeof(float) * 2); // Each point has two coordinates (x, y)
         if (!opt_path->point_list[i]) {
             fprintf(stderr, "Memory allocation failed for point_list[%d].\n", i);
-            return NULL;
+            return;
         }
     }
 
@@ -436,8 +448,5 @@ Optimal_Path * backtrack_path(Params *params, vertex_t *goal_vertex) {
     // Set elements for the path
     opt_path->g_image_riemann_tot = riem_cumul;
     opt_path->len = len_cumul;
-    opt_path->l = path_length;
-
-    return opt_path;
 }
 
