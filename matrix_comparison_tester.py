@@ -1,6 +1,10 @@
 
 import json
 import sys
+import elliptical_surface_graph as esg
+
+# Key constant strings 
+g_image_test_key = "g_image_test"
 
 def compare_matrices_with_tolerance(file_path, key1, key2, tolerance=1e-6):
     with open(file_path, 'r') as file:
@@ -36,7 +40,7 @@ def main():
     print(f"The input file path is: {input_filepath}")
 
     # Example usage
-    compare_matrices_with_tolerance(input_filepath, 'g_image', 'g_image_test')
+    compare_matrices_with_tolerance(input_filepath, esg.g_image_key, g_image_test_key)
 
 if __name__ == '__main__':
     main()

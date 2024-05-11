@@ -9,6 +9,9 @@ t_max = 2 * np.pi
 theta_max = 4
 theta_min = 1
 
+# Key constant strings 
+g_image_key = "g_image"
+
 # Function extracting envirnoment parameters from .json file
 def load_parameters(filename):
     with open(filename, 'r') as file:
@@ -19,7 +22,7 @@ def load_parameters(filename):
 def save_to_json(g_image, filename):
     with open(filename, 'r+') as file:
         params = json.load(file) # retrieve current file params
-        params['g_image'] = g_image.tolist()  # Convert numpy array to list for JSON serialization, and add new dictionary entry to params
+        params[g_image_key] = g_image.tolist()  # Convert numpy array to list for JSON serialization, and add new dictionary entry to params
         file.seek(0)  # Rewind file to the beginning
         json.dump(params, file, indent=4)
         file.truncate()  # Truncate file to the new size

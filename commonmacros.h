@@ -11,3 +11,5 @@
 // #define MH_DBG 1 // unit testing 
 // #define PARS_DBG 1
 
+#define HC_UT 1
+

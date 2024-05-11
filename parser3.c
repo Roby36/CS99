@@ -159,6 +159,12 @@ Params * load_json(const char * file_name) {
     // Extract matrices
     params->g_image              = extract_float_matrix(json,  "g_image");
     params->elliptical_obstacles = extract_float_matrix(json,  "elliptical_obstacles");
+
+    /* Extract test paths */
+    params->test_path_1 = extract_float_matrix(json,  "test_path_1");
+    params->test_path_2 = extract_float_matrix(json,  "test_path_2");
+    params->steps_path1 = extract_int(json, "test_path_1_steps");
+    params->steps_path2 = extract_int(json, "test_path_2_steps");
     
     // Clean-up
     free(copy_str); 
