@@ -30,6 +30,11 @@ typedef struct {
     float ** elliptical_obstacles;
     float ** g_image;
 
+    float ** test_path_1;
+    float ** test_path_2;
+    int steps_path1;
+    int steps_path2;
+
 } Params;
 
 /* Main encapsulated functions exposed here for usage in other files */
