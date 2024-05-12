@@ -6,6 +6,8 @@
 #include "vertex.h"
 #include "open_set.h"
 #include "commonmacros.h"
+#include "obstacle_marker.h"
+#include "Lval_list.h"
 
 /* Keep configuration parameters in a wrappable, versatile way */
 typedef struct {
@@ -19,6 +21,9 @@ typedef struct {
     float ** point_list;
     float len;
     float g_image_riemann_tot;
+    /* Homotopy addition */
+    Complex Lval;
+
 } Optimal_Path;
 
 /* Given already-malloc'd path struct with SET length, deallocates internal point list */
@@ -45,7 +50,11 @@ void A_star(
     Optimal_Path * opt_path,
     float (*h) (int, int, int, int, Params *, Config * ),
     float (*c) (int, int, int, int, Params *, Config * ),
-    float float_tol
+    float float_tol,
+    /* Homotopy parameters */
+    Lval_list_t * B,    // blocked homotopy classes for the search
+    double abs_tol, // decimal tolerance for resolving between homotopy classes
+    F_t * F             // obstacle marker
 );
 
 

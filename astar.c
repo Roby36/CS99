@@ -5,7 +5,7 @@
 static const char * output_path_param_name = "A_star_output_path";
 
 /* Internal functions prototypes & helpers */
-static void backtrack_path(Params *params, vertex_t *goal_vertex, Optimal_Path * opt_path);
+static void backtrack_path(Params *params, vertex_t *goal_vertex, Optimal_Path * opt_path, F_t * F);
 
 /** Cost function implementation 
  * Now we have two discrete, adjacent points (x_1,y_1) and (x_2,y_2), in the s-step sized state grid for the robot.
@@ -80,6 +80,53 @@ float heuristic(
     return h;
 }
 
+
+/* A* helpers */
+
+bool A_star_goal_check(
+    Params * params, Optimal_Path * opt_path, Lval_list_t * B, double abs_tol, F_t * F,
+    vertex_t * current_vertex, int x_goal_step, int y_goal_step) 
+{
+    int x_c = current_vertex->x_s;
+    int y_c = current_vertex->y_s;
+
+    if ((x_c == x_goal_step && y_c == y_goal_step) && 
+        /* Add homotopy constraints checks */
+        (B == NULL || !Lval_list_contains(B, current_vertex->L_values, abs_tol) )) {
+            #ifdef ASTDBG
+            printf("Goal reached at (%d, %d) with path cost: %f\n", x_c, y_c, current_vertex->g_score);
+            #endif
+            /** Reconstruct & assign path **/
+            backtrack_path(params, current_vertex, opt_path, F);
+            return true;    // goal was found
+    }
+    return false;   // goal not found 
+}
+
+void print_path(
+    Params * params, Config * config, Optimal_Path * opt_path, float float_tol, 
+    Lval_list_t * B, double abs_tol, int expanded_states) 
+{
+    char * B_str = complex_list_to_string(B);
+    printf("\nA* found path to goal with inputs:\n"
+        "\t(x_g, y_g) = (%f, %f)\n"
+        "\tr = %f, s = %f\n"
+        "\ta = %f, b = %f\n"
+        "\tBlocked homotopy classes B: %s\n"
+        "\tfloat tolerance = %f\n"
+        "\tdecimal tolerance for homotopy classes: %f\n"
+        "\nOutput path:\n"
+        "\tcumulative length: %f\n" 
+        "\tg_image Riemann sum (accumulated uncertainty): %f\n"
+        "\tL-value for optimal path: (%.2f + %.2fi)\n"
+        "\tTotal states expanded: %d\n",
+    params->x_g, params->y_g, params->r, params->s, config->a, config->b, B_str,
+    float_tol, abs_tol, opt_path->len, opt_path->g_image_riemann_tot, 
+    creal(opt_path->Lval), cimag(opt_path->Lval), expanded_states
+    );
+    free(B_str);
+}
+
 /**************** Main A* algorithm implementation ****************/
 void A_star(
     Params * params,
@@ -87,8 +134,15 @@ void A_star(
     Optimal_Path * opt_path,
     float (*h) (int, int, int, int, Params *, Config * ),
     float (*c) (int, int, int, int, Params *, Config * ),
-    float float_tol)
+    float float_tol,
+    /* Homotopy parameters */
+    Lval_list_t * B,    // blocked homotopy classes for the search
+    double abs_tol, // decimal tolerance for resolving between homotopy classes
+    F_t * F             // obstacle marker
+    ) 
 {
+    int expanded_states = 0;    // we consider a state explored whenever this is added to the closed set
+
     #ifdef ASTCLCK
     struct timeval start, end;
     long seconds, microseconds;
@@ -108,7 +162,7 @@ void A_star(
     const int y_start_step = (int) (params->y_s - params->y_min) / params->s;
     const int y_goal_step  = (int) (params->y_g - params->y_min) / params->s;    
 
-    // Next, based on number of rows (ys_steps), and columns (xs_steps), allocate the grid
+    /* This dynamic grid allocation within A* is deliberate to ensure that the states are perfectly blank at each run of the algorithm */
     vertex_t *** S = malloc(params->ys_steps * sizeof(vertex_t **));  // row pointers
     if (!S) {
         fprintf(stderr, "Failed to allocate memory for grid rows.\n");
@@ -133,8 +187,10 @@ void A_star(
             new_vertex->parent = NULL;
             new_vertex->g_score = INFINITY;
             new_vertex->f_score = INFINITY;
-            new_vertex->next = NULL; 
+            // new_vertex->next = NULL; only for old linked list implementation 
             new_vertex->is_evaluated = false; // this means that element wasn't yet added to closed set
+            /* Homotopy addition */
+            new_vertex->L_values = Lval_list_new(); // intialize empty list of Lvalues for each vertex
             // Save malloc'd vertex to matrix of vertex pointers 
             S[ys][xs] = new_vertex;
         }
@@ -146,6 +202,7 @@ void A_star(
     start_vertex->f_score = h(
         x_start_step, y_start_step, x_goal_step, y_goal_step, params, config
     );
+    insert_Lval(start_vertex->L_values, CMPLX(0.0, 0.0), abs_tol);  // Initialize start vertex's Lvalue to 0 + 0i
 
     // Start priority queue, intitialized to the start vertex
     open_set_t * open_set = open_set_new(); /** CAREFUL: not checking for NULL pointer return */
@@ -155,17 +212,12 @@ void A_star(
         vertex_t * current_vertex = dequeue_min(open_set);
         // flag the current vertex as evaluated (like adding it to closed set)
         current_vertex->is_evaluated = true;
+        expanded_states++;
         // keep the current x,y coordinates as local variables for clarity
         int x_c = current_vertex->x_s;
         int y_c = current_vertex->y_s;
-        if (x_c == x_goal_step && y_c == y_goal_step) {
-            #ifdef ASTDBG
-            printf("Goal reached at (%d, %d) with path cost: %f\n", x_c, y_c, current_vertex->g_score);
-            #endif
-            /** Reconstruct & assign path **/
-            backtrack_path(params, current_vertex, opt_path);
-            break; // break out of while loop so that you can first clean up, and then return the saved path
-        }
+
+        /* In the case of no homotopy constraints, goal check & while-loop break / return here */
     
         /** Now start generating outneighbors, considering that 
          * 1) If we have a g_image under FLOAT_TOL, signaling a zero value, the state is inaccessible
@@ -183,6 +235,29 @@ void A_star(
             }
             // Now that we know that the vertex can be accessed, we can extract it 
             vertex_t * neighb_vertex = S[y_n][x_n];
+
+
+            /* Update Lvalues at a suboptimal stage */
+            /* Homotopy addition: update L-values of newly discovered vertex based on the parent */
+            /*
+            merge_Lvalues(
+                neighb_vertex->L_values, current_vertex->L_values, 
+                // As we calculate L-value between vertices, remember to scale back up to the map standard scale 
+                L(CMPLX(params->x_min + (x_c * params->s), params->y_min + (y_c * params->s)), 
+                  CMPLX(params->x_min + (x_n * params->s), params->y_min + (y_n * params->s)),
+                  F), 
+                abs_tol
+            );
+
+            // Goal state check at suboptimal stage 
+            if (A_star_goal_check(params, opt_path, B, abs_tol, F, neighb_vertex, x_goal_step, y_goal_step)) {
+                print_path(params, config, opt_path, float_tol, B, abs_tol, expanded_states); // show the current path
+                free_point_array(opt_path); // reset the points in the path
+            }
+            */
+
+
+
             // Check if the vertex is already in the closed set
             if (neighb_vertex->is_evaluated) {
                 continue;
@@ -199,9 +274,10 @@ void A_star(
             #ifdef ASTDBG
             printf("Updating vertex (%d, %d) from g_score: %f to g_score: %f\n", neighb_vertex->x_s, neighb_vertex->y_s, neighb_vertex->g_score, tent_g);
             #endif
-            neighb_vertex->parent = current_vertex;
+            neighb_vertex->parent  = current_vertex;
             neighb_vertex->g_score = tent_g;
             neighb_vertex->f_score = tent_g + h(x_n, y_n, x_goal_step, y_goal_step, params, config);
+
 
             /** CRITICAL: If the vertex is already in the min heap, dedrease key, otherwise add it */
             if (neighb_vertex->minheap_node) {
@@ -218,35 +294,28 @@ void A_star(
     printf("Cleaning up resources...\n");
     #endif
 
-    // free_open_set(open_set); vertices are already deallocated later on 
+    free_open_set(open_set); 
 
     // Deallocation of the grid
     for (int ys = 0; ys < params->ys_steps; ys++) {
         for (int xs = 0; xs < params->xs_steps; xs++) {
-            free(S[ys][xs]); // free vertex * within matrix
+            vertex_t * curr_vert = S[ys][xs];
+            free_Lval_list(curr_vert->L_values);    
+            free(curr_vert); // free vertex * within matrix
         }
         free(S[ys]); // free row pointer (vertex **)
     } 
     free(S);
 
+    // print_path(params, config, opt_path, float_tol, B, abs_tol, expanded_states);
+    // Add timestamp under general print statement
     #ifdef ASTCLCK
     CALCULATE_ELAPSED_TIME(start, end, elapsed);
-
-    printf("\nA* terminated with inputs:\n"
-        "\t(x_g, y_g) = (%f, %f)\n"
-        "\tr = %f, s = %f\n"
-        "\ta = %f, b = %f\n"
-        "\tfloat tolerance = %f\n"
-        "\nOutput path:\n"
-        "\tcumulative length: %f\n" 
-        "\tg_image Riemann sum (accumulated uncertainty): %f\n"
-        "\nTime elapsed:\n"
-        "\t%.5f seconds\n\n", 
-    params->x_g, params->y_g, params->r, params->s, config->a, config->b, 
-    float_tol, opt_path->len, opt_path->g_image_riemann_tot, elapsed
-    );
+    printf("\nTime elapsed:\n\t%.5f seconds\n\n", elapsed);
     #endif
 }
+
+/* Unit testing area */
 
 #ifdef AST_UT
 
@@ -318,6 +387,12 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    /* Homotopic addition: Extract obstacle marker parameters from parameters, and define blocked homotopy classes */
+    F_t * F = extract_obstacle_marker_func_params(params);
+    Lval_list_t * B = Lval_list_new();    // start empty here, allowing all homotopy classes
+    // Hard-coding some previously identified homotopy classes that we want to try to block:
+    // insert_Lval(B, CMPLX(-19.80, -61.57), 0.1);
+
     // Test if we actually have the right matrix by printing it to the file under other key
     #ifdef ASTDBG
     write_json(input_json_path, "g_image_test", params->g_image, params->yr_steps, params->xr_steps); 
@@ -332,7 +407,7 @@ int main(int argc, char *argv[]) {
     #endif
 
     // Allocate memory for the path struct
-    Optimal_Path * opt_path = malloc(sizeof(Optimal_Path));
+    opt_path = malloc(sizeof(Optimal_Path));
 
     #ifdef ASTCLCK
     CALCULATE_ELAPSED_TIME(start, end, elapsed);
@@ -340,7 +415,10 @@ int main(int argc, char *argv[]) {
     #endif
 
     // Invoke the A* algorithm on all the inputs generated
-    A_star(params, config, opt_path, heuristic, edge_cost, 0.1);
+    A_star(params, config, opt_path, heuristic, edge_cost, 0.1,
+            /* Homotopy additions */
+            B, 0.1, F
+    );
     if (opt_path->point_list == NULL) {
         DEBUG_ERROR("A_star returned NULL opt_path->point_list. Exiting...");
         exit(2);
@@ -354,6 +432,8 @@ int main(int argc, char *argv[]) {
     free(config);
     free_point_array(opt_path);
     free(opt_path);
+    free_Lval_list(B);
+    delete_obstacle_marker_func_params(F);
     /** TODO: Find ways to clean up the params struct; probably manual thorough cleanup required for grids */
     free(params);
 
@@ -390,7 +470,7 @@ void free_point_array(Optimal_Path * opt_path) {
 
 /** Path backtracking **/
 /** IMPORTANT: Takes an already-allocated Optimal_Path struct, but responsible to allocate internal point list */
-void backtrack_path(Params *params, vertex_t *goal_vertex, Optimal_Path * opt_path) {
+void backtrack_path(Params *params, vertex_t *goal_vertex, Optimal_Path * opt_path, F_t * F) {
     
     int path_length  = 0;       // number of discrete steps
     float len_cumul  = 0.0f;    // cumulative length of path, scaled up
@@ -448,5 +528,9 @@ void backtrack_path(Params *params, vertex_t *goal_vertex, Optimal_Path * opt_pa
     // Set elements for the path
     opt_path->g_image_riemann_tot = riem_cumul;
     opt_path->len = len_cumul;
+
+    /* Homotopy addition: calculate path integral to determine homotopy class (slightly inefficient as it does a double path traversal) */
+    opt_path->Lval = calculate_path_integral(opt_path->point_list, path_length, F);
+
 }
 
