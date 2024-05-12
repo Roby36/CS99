@@ -7,7 +7,7 @@
 #include "open_set.h"
 #include "commonmacros.h"
 #include "obstacle_marker.h"
-#include "Lval_list.h"
+#include "hom_classes.h"
 
 /* Keep configuration parameters in a wrappable, versatile way */
 typedef struct {
@@ -52,8 +52,8 @@ void A_star(
     float (*c) (int, int, int, int, Params *, Config * ),
     float float_tol,
     /* Homotopy parameters */
-    Lval_list_t * B,    // blocked homotopy classes for the search
-    double abs_tol, // decimal tolerance for resolving between homotopy classes
+    // Lval_list_t * B,    // blocked homotopy classes for the search
+    double abs_tol,     // decimal tolerance for resolving between homotopy classes
     F_t * F             // obstacle marker
 );
 

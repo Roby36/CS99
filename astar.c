@@ -80,19 +80,29 @@ float heuristic(
     return h;
 }
 
+/* Try defining here a "zero heuristic" for Dijkstra, more appropriate to explore several homotopy classes spread across the environment */
+float zero_heuristic(
+    int x_n, int y_n, int x_g, int y_g,
+    Params * params,
+    Config * config)
+{
+    return 0.0f;
+}
 
 /* A* helpers */
 
 bool A_star_goal_check(
-    Params * params, Optimal_Path * opt_path, Lval_list_t * B, double abs_tol, F_t * F,
+    Params * params, Optimal_Path * opt_path, /* hom_classes_list_t * B, */ double abs_tol, F_t * F,
     vertex_t * current_vertex, int x_goal_step, int y_goal_step) 
 {
     int x_c = current_vertex->x_s;
     int y_c = current_vertex->y_s;
 
-    if ((x_c == x_goal_step && y_c == y_goal_step) && 
-        /* Add homotopy constraints checks */
-        (B == NULL || !Lval_list_contains(B, current_vertex->L_values, abs_tol) )) {
+    if ((x_c == x_goal_step && y_c == y_goal_step)
+        /* For now no homotopy constraints checks 
+        && (B == NULL || !Lval_list_contains(B, current_vertex->L_values, abs_tol) )
+        */
+        ) {
             #ifdef ASTDBG
             printf("Goal reached at (%d, %d) with path cost: %f\n", x_c, y_c, current_vertex->g_score);
             #endif
@@ -105,14 +115,14 @@ bool A_star_goal_check(
 
 void print_path(
     Params * params, Config * config, Optimal_Path * opt_path, float float_tol, 
-    Lval_list_t * B, double abs_tol, int expanded_states) 
+    hom_classes_list_t * B, double abs_tol, int expanded_states) 
 {
     char * B_str = complex_list_to_string(B);
     printf("\nA* found path to goal with inputs:\n"
         "\t(x_g, y_g) = (%f, %f)\n"
         "\tr = %f, s = %f\n"
         "\ta = %f, b = %f\n"
-        "\tBlocked homotopy classes B: %s\n"
+        "\tHomotopy classes B: %s\n"
         "\tfloat tolerance = %f\n"
         "\tdecimal tolerance for homotopy classes: %f\n"
         "\nOutput path:\n"
@@ -136,12 +146,12 @@ void A_star(
     float (*c) (int, int, int, int, Params *, Config * ),
     float float_tol,
     /* Homotopy parameters */
-    Lval_list_t * B,    // blocked homotopy classes for the search
+    // hom_classes_list_t * B,    // blocked homotopy classes for the search
     double abs_tol, // decimal tolerance for resolving between homotopy classes
     F_t * F             // obstacle marker
     ) 
 {
-    int expanded_states = 0;    // we consider a state explored whenever this is added to the closed set
+    int expanded_states = 0;    // we consider a state explored whenever it is added to the closed set
 
     #ifdef ASTCLCK
     struct timeval start, end;
@@ -190,7 +200,7 @@ void A_star(
             // new_vertex->next = NULL; only for old linked list implementation 
             new_vertex->is_evaluated = false; // this means that element wasn't yet added to closed set
             /* Homotopy addition */
-            new_vertex->L_values = Lval_list_new(); // intialize empty list of Lvalues for each vertex
+            new_vertex->hom_classes = hom_classes_list_new(); // intialize empty list of Lvalues for each vertex
             // Save malloc'd vertex to matrix of vertex pointers 
             S[ys][xs] = new_vertex;
         }
@@ -202,7 +212,7 @@ void A_star(
     start_vertex->f_score = h(
         x_start_step, y_start_step, x_goal_step, y_goal_step, params, config
     );
-    insert_Lval(start_vertex->L_values, CMPLX(0.0, 0.0), abs_tol);  // Initialize start vertex's Lvalue to 0 + 0i
+    insert_Lval(start_vertex->hom_classes, CMPLX(0.0, 0.0), abs_tol);  // Initialize start vertex's Lvalue to 0 + 0i
 
     // Start priority queue, intitialized to the start vertex
     open_set_t * open_set = open_set_new(); /** CAREFUL: not checking for NULL pointer return */
@@ -218,7 +228,7 @@ void A_star(
         int y_c = current_vertex->y_s;
 
         /* In the case of no homotopy constraints, goal check & while-loop break / return here */
-    
+
         /** Now start generating outneighbors, considering that 
          * 1) If we have a g_image under FLOAT_TOL, signaling a zero value, the state is inaccessible
          * 2) If the boundaries go beyond matrix capacity, the state is inaccessible
@@ -235,33 +245,52 @@ void A_star(
             }
             // Now that we know that the vertex can be accessed, we can extract it 
             vertex_t * neighb_vertex = S[y_n][x_n];
-
-
-            /* Update Lvalues at a suboptimal stage */
-            /* Homotopy addition: update L-values of newly discovered vertex based on the parent */
-            /*
-            merge_Lvalues(
-                neighb_vertex->L_values, current_vertex->L_values, 
-                // As we calculate L-value between vertices, remember to scale back up to the map standard scale 
-                L(CMPLX(params->x_min + (x_c * params->s), params->y_min + (y_c * params->s)), 
-                  CMPLX(params->x_min + (x_n * params->s), params->y_min + (y_n * params->s)),
-                  F), 
-                abs_tol
-            );
-
-            // Goal state check at suboptimal stage 
-            if (A_star_goal_check(params, opt_path, B, abs_tol, F, neighb_vertex, x_goal_step, y_goal_step)) {
-                print_path(params, config, opt_path, float_tol, B, abs_tol, expanded_states); // show the current path
-                free_point_array(opt_path); // reset the points in the path
-            }
-            */
-
-
-
             // Check if the vertex is already in the closed set
+            
             if (neighb_vertex->is_evaluated) {
                 continue;
             }
+        
+            /* Now update iteratively the resulting homotpy classes of the neighbor, stemming from each homotopy class of the curr_vertex */
+            // Compute the Lvalue between the curr_vertex and neighb_vertex, scaling back to the map standard scale 
+            Complex L_curr = L(
+                CMPLX(params->x_min + (x_c * params->s), params->y_min + (y_c * params->s)), 
+                CMPLX(params->x_min + (x_n * params->s), params->y_min + (y_n * params->s)),
+                F
+            );
+            // Iteration logic
+            hom_class * curr_vertex_hom_class = current_vertex->hom_classes->head;
+            while (curr_vertex_hom_class != NULL) {
+                // Get the L-value for the resulting homotopy class into the neighbor
+                Complex neighb_Lval = (curr_vertex_hom_class->Lval + L_curr);
+                // Ensure this homotopy class is inserted, and extract the corresponding struct
+                insert_Lval(neighb_vertex->hom_classes, neighb_Lval, abs_tol);  // handles the initialization of new hom_class struct values
+                hom_class * neighb_vertex_hom_class = hom_class_get(neighb_vertex->hom_classes, neighb_Lval, abs_tol);
+                /* Now repeat the standard f, g, parent update procedure, this time at the homotopy-class level */
+                float tent_g = curr_vertex_hom_class->g_score + c(x_c, y_c, x_n, y_n, params, config); // use same cost here
+                if (tent_g < neighb_vertex_hom_class->g_score) {
+                    /* Update f,g and add all the necessary backtracking information */
+                    neighb_vertex_hom_class->g_score = tent_g;  // use same heuristic here:
+                    neighb_vertex_hom_class->f_score = tent_g + h(x_n, y_n, x_goal_step, y_goal_step, params, config);
+                    // neighb_vertex_hom_class->parent_hom_class = curr_vertex_hom_class;
+                    neighb_vertex_hom_class->parent_vertex = current_vertex;
+                }
+                // March to the next homotopy class
+                curr_vertex_hom_class = curr_vertex_hom_class->next;
+            }
+
+            /* Debugging wrapper: check for goal states */
+            // Goal state check at suboptimal stage 
+            if (A_star_goal_check(params, opt_path, /*B,*/ abs_tol, F, neighb_vertex, x_goal_step, y_goal_step)) {
+                print_path(params, config, opt_path, float_tol, neighb_vertex->hom_classes, abs_tol, expanded_states); // show the current path
+                free_point_array(opt_path); // reset the points in the path
+            }
+            /* Debugging: check for goal states */
+
+
+            /* The algorithm now continues as in the standard case, independently of the homotopy computations */
+            /* Instead, we could also determine rules by which homtopy classes affect the overall behavior / policy of the graph search */
+
             // Calculate tentative g_score
             float tent_g = current_vertex->g_score + c(
                 x_c, y_c, x_n, y_n, params, config
@@ -277,7 +306,6 @@ void A_star(
             neighb_vertex->parent  = current_vertex;
             neighb_vertex->g_score = tent_g;
             neighb_vertex->f_score = tent_g + h(x_n, y_n, x_goal_step, y_goal_step, params, config);
-
 
             /** CRITICAL: If the vertex is already in the min heap, dedrease key, otherwise add it */
             if (neighb_vertex->minheap_node) {
@@ -300,7 +328,7 @@ void A_star(
     for (int ys = 0; ys < params->ys_steps; ys++) {
         for (int xs = 0; xs < params->xs_steps; xs++) {
             vertex_t * curr_vert = S[ys][xs];
-            free_Lval_list(curr_vert->L_values);    
+            free_hom_classes_list(curr_vert->hom_classes);    
             free(curr_vert); // free vertex * within matrix
         }
         free(S[ys]); // free row pointer (vertex **)
@@ -389,13 +417,13 @@ int main(int argc, char *argv[]) {
 
     /* Homotopic addition: Extract obstacle marker parameters from parameters, and define blocked homotopy classes */
     F_t * F = extract_obstacle_marker_func_params(params);
-    Lval_list_t * B = Lval_list_new();    // start empty here, allowing all homotopy classes
+    // hom_classes_list_t * B = Lval_list_new();    // start empty here, allowing all homotopy classes
     // Hard-coding some previously identified homotopy classes that we want to try to block:
     // insert_Lval(B, CMPLX(-19.80, -61.57), 0.1);
 
     // Test if we actually have the right matrix by printing it to the file under other key
     #ifdef ASTDBG
-    write_json(input_json_path, "g_image_test", params->g_image, params->yr_steps, params->xr_steps); 
+    // write_json(input_json_path, "g_image_test", params->g_image, params->yr_steps, params->xr_steps); 
     #endif
 
     config = malloc(sizeof(Config));
@@ -415,9 +443,12 @@ int main(int argc, char *argv[]) {
     #endif
 
     // Invoke the A* algorithm on all the inputs generated
-    A_star(params, config, opt_path, heuristic, edge_cost, 0.1,
+    A_star(
+        params, config, opt_path, 
+        zero_heuristic, // this essentially turns A* into Dijkstra's for uniform exploration
+        edge_cost, 0.1,
             /* Homotopy additions */
-            B, 0.1, F
+            /*B,*/ 0.1, F
     );
     if (opt_path->point_list == NULL) {
         DEBUG_ERROR("A_star returned NULL opt_path->point_list. Exiting...");
@@ -432,7 +463,7 @@ int main(int argc, char *argv[]) {
     free(config);
     free_point_array(opt_path);
     free(opt_path);
-    free_Lval_list(B);
+    // free_Lval_list(B);
     delete_obstacle_marker_func_params(F);
     /** TODO: Find ways to clean up the params struct; probably manual thorough cleanup required for grids */
     free(params);
