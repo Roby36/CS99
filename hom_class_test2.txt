@@ -1,0 +1,679 @@
+Invoking load_json 0.00000 seconds from start of astar main() program execution
+Error: JSON key 'test_path_1' is not an array or does not exist
+Error: JSON key 'test_path_2' is not an array or does not exist
+Error: Key 'test_path_1_steps' does not exist in the JSON data.
+Error: Key 'test_path_2_steps' does not exist in the JSON data.
+
+Invoking A* 12.37117 seconds from start of astar main() program execution
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 56.355625
+        g_image Riemann sum (accumulated uncertainty): 22.667206
+        L-value: (-19.80 + -61.57i)
+        Total states expanded: 2357708
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 56.097855
+        g_image Riemann sum (accumulated uncertainty): 23.410368
+        L-value: (0.17 + 1.69i)
+        Total states expanded: 2406529
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 65.582733
+        g_image Riemann sum (accumulated uncertainty): 21.194227
+        L-value: (69.44 + -66.37i)
+        Total states expanded: 3211915
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 62.333523
+        g_image Riemann sum (accumulated uncertainty): 26.198420
+        L-value: (0.17 + 7.98i)
+        Total states expanded: 3431007
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 67.992760
+        g_image Riemann sum (accumulated uncertainty): 22.291586
+        L-value: (89.42 + -3.11i)
+        Total states expanded: 3672903
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 68.818428
+        g_image Riemann sum (accumulated uncertainty): 26.656218
+        L-value: (-89.07 + 12.78i)
+        Total states expanded: 4544337
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 81.021080
+        g_image Riemann sum (accumulated uncertainty): 26.409353
+        L-value: (20.15 + 71.24i)
+        Total states expanded: 7560968
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 87.506027
+        g_image Riemann sum (accumulated uncertainty): 26.867149
+        L-value: (-69.09 + 76.04i)
+        Total states expanded: 10185338
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 91.737976
+        g_image Riemann sum (accumulated uncertainty): 26.993196
+        L-value: (49.46 + -135.92i)
+        Total states expanded: 12149403
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 93.884995
+        g_image Riemann sum (accumulated uncertainty): 26.505495
+        L-value: (-109.05 + -56.77i)
+        Total states expanded: 12926235
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 93.627319
+        g_image Riemann sum (accumulated uncertainty): 27.248646
+        L-value: (-89.07 + 6.49i)
+        Total states expanded: 13154448
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 94.147888
+        g_image Riemann sum (accumulated uncertainty): 28.265282
+        L-value: (69.44 + -72.66i)
+        Total states expanded: 13879159
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 100.965393
+        g_image Riemann sum (accumulated uncertainty): 25.520218
+        L-value: (138.70 + -140.72i)
+        Total states expanded: 15840671
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 99.454597
+        g_image Riemann sum (accumulated uncertainty): 27.061321
+        L-value: (-39.78 + -124.84i)
+        Total states expanded: 15855616
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 99.197083
+        g_image Riemann sum (accumulated uncertainty): 27.804489
+        L-value: (20.15 + 64.96i)
+        Total states expanded: 16096637
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 103.112305
+        g_image Riemann sum (accumulated uncertainty): 25.032505
+        L-value: (158.68 + -71.17i)
+        Total states expanded: 16667562
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 97.716133
+        g_image Riemann sum (accumulated uncertainty): 30.525103
+        L-value: (-69.09 + 82.33i)
+        Total states expanded: 16716203
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 99.863091
+        g_image Riemann sum (accumulated uncertainty): 30.036703
+        L-value: (89.42 + 3.18i)
+        Total states expanded: 17555621
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 103.375160
+        g_image Riemann sum (accumulated uncertainty): 26.792297
+        L-value: (158.68 + -77.46i)
+        Total states expanded: 17693135
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 105.522072
+        g_image Riemann sum (accumulated uncertainty): 26.129862
+        L-value: (178.66 + -7.91i)
+        Total states expanded: 18466244
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 108.681984
+        g_image Riemann sum (accumulated uncertainty): 25.588356
+        L-value: (49.46 + -129.64i)
+        Total states expanded: 19879075
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 104.201332
+        g_image Riemann sum (accumulated uncertainty): 30.982889
+        L-value: (-158.33 + 87.13i)
+        Total states expanded: 20381091
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 105.432724
+        g_image Riemann sum (accumulated uncertainty): 30.592535
+        L-value: (-19.80 + -55.29i)
+        Total states expanded: 20847955
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 106.348381
+        g_image Riemann sum (accumulated uncertainty): 30.494497
+        L-value: (-178.31 + 17.58i)
+        Total states expanded: 21308817
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 111.091911
+        g_image Riemann sum (accumulated uncertainty): 26.685696
+        L-value: (109.39 + 60.16i)
+        Total states expanded: 21841963
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 111.917641
+        g_image Riemann sum (accumulated uncertainty): 31.050333
+        L-value: (-109.05 + -50.49i)
+        Total states expanded: 24957513
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 113.554916
+        g_image Riemann sum (accumulated uncertainty): 32.019157
+        L-value: (-39.78 + -131.12i)
+        Total states expanded: 26677323
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 113.297188
+        g_image Riemann sum (accumulated uncertainty): 32.762302
+        L-value: (-19.80 + -67.86i)
+        Total states expanded: 27011225
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 116.403809
+        g_image Riemann sum (accumulated uncertainty): 30.736042
+        L-value: (-49.11 + 145.59i)
+        Total states expanded: 27773019
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 118.550766
+        g_image Riemann sum (accumulated uncertainty): 30.247643
+        L-value: (109.39 + 66.44i)
+        Total states expanded: 28998916
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 119.826332
+        g_image Riemann sum (accumulated uncertainty): 33.868786
+        L-value: (89.42 + -9.39i)
+        Total states expanded: 32931514
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 122.889008
+        g_image Riemann sum (accumulated uncertainty): 31.193829
+        L-value: (-138.35 + 150.39i)
+        Total states expanded: 33259919
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 124.120125
+        g_image Riemann sum (accumulated uncertainty): 30.803488
+        L-value: (40.13 + 134.51i)
+        Total states expanded: 33980492
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 119.533478
+        g_image Riemann sum (accumulated uncertainty): 35.555988
+        L-value: (20.15 + 77.53i)
+        Total states expanded: 34124114
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 125.036057
+        g_image Riemann sum (accumulated uncertainty): 30.705437
+        L-value: (-158.33 + 80.84i)
+        Total states expanded: 34695815
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 127.120842
+        g_image Riemann sum (accumulated uncertainty): 31.319183
+        L-value: (118.72 + -210.27i)
+        Total states expanded: 37181149
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),   (-198.29 + -51.97i),    (-49.11 + 139.31i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 131.413620
+        g_image Riemann sum (accumulated uncertainty): 30.343763
+        L-value: (-198.29 + -51.97i)
+        Total states expanded: 40388365
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),   (-198.29 + -51.97i),    (-49.11 + 139.31i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 130.604721
+        g_image Riemann sum (accumulated uncertainty): 31.261284
+        L-value: (-49.11 + 139.31i)
+        Total states expanded: 40494840
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),   (-198.29 + -51.97i),    (-49.11 + 139.31i),     (138.70 + -147.01i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 129.530396
+        g_image Riemann sum (accumulated uncertainty): 32.591267
+        L-value: (138.70 + -147.01i)
+        Total states expanded: 40744909
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),   (-198.29 + -51.97i),    (-49.11 + 139.31i),     (138.70 + -147.01i),    (-178.31 + 11.29i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 131.156113
+        g_image Riemann sum (accumulated uncertainty): 31.086908
+        L-value: (-178.31 + 11.29i)
+        Total states expanded: 40864288
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),   (-198.29 + -51.97i),    (-49.11 + 139.31i),     (138.70 + -147.01i),    (-178.31 + 11.29i),    (-89.07 + 19.06i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 126.062172
+        g_image Riemann sum (accumulated uncertainty): 36.654037
+        L-value: (-89.07 + 19.06i)
+        Total states expanded: 41328508
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),   (-198.29 + -51.97i),    (-49.11 + 139.31i),     (138.70 + -147.01i),    (-178.31 + 11.29i),    (-89.07 + 19.06i),      (178.66 + -14.19i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 131.720856
+        g_image Riemann sum (accumulated uncertainty): 32.749989
+        L-value: (178.66 + -14.19i)
+        Total states expanded: 43069223
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),   (-198.29 + -51.97i),    (-49.11 + 139.31i),     (138.70 + -147.01i),    (-178.31 + 11.29i),    (-89.07 + 19.06i),      (178.66 + -14.19i),     (207.96 + -215.07i),    (29.48 + -199.19i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 136.346863
+        g_image Riemann sum (accumulated uncertainty): 29.846216
+        L-value: (207.96 + -215.07i)
+        Total states expanded: 44813929
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),   (-198.29 + -51.97i),    (-49.11 + 139.31i),     (138.70 + -147.01i),    (-178.31 + 11.29i),    (-89.07 + 19.06i),      (178.66 + -14.19i),     (207.96 + -215.07i),    (29.48 + -199.19i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 134.835861
+        g_image Riemann sum (accumulated uncertainty): 31.387318
+        L-value: (29.48 + -199.19i)
+        Total states expanded: 44845412
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),   (-198.29 + -51.97i),    (-49.11 + 139.31i),     (138.70 + -147.01i),    (-178.31 + 11.29i),    (-89.07 + 19.06i),      (178.66 + -14.19i),     (207.96 + -215.07i),    (29.48 + -199.19i),    (227.94 + -145.52i),    (-129.02 + -120.04i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 138.493484
+        g_image Riemann sum (accumulated uncertainty): 29.358501
+        L-value: (227.94 + -145.52i)
+        Total states expanded: 46523662
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),   (-198.29 + -51.97i),    (-49.11 + 139.31i),     (138.70 + -147.01i),    (-178.31 + 11.29i),    (-89.07 + 19.06i),      (178.66 + -14.19i),     (207.96 + -215.07i),    (29.48 + -199.19i),    (227.94 + -145.52i),    (-129.02 + -120.04i),   (-138.35 + 156.68i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 136.982605
+        g_image Riemann sum (accumulated uncertainty): 30.899616
+        L-value: (-129.02 + -120.04i)
+        Total states expanded: 46555795
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),   (-198.29 + -51.97i),    (-49.11 + 139.31i),     (138.70 + -147.01i),    (-178.31 + 11.29i),    (-89.07 + 19.06i),      (178.66 + -14.19i),     (207.96 + -215.07i),    (29.48 + -199.19i),    (227.94 + -145.52i),    (-129.02 + -120.04i),   (-138.35 + 156.68i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 133.098038
+        g_image Riemann sum (accumulated uncertainty): 34.851784
+        L-value: (-138.35 + 156.68i)
+        Total states expanded: 46625175
+
+A* found path to goal with inputs:
+        (x_g, y_g) = (-18.000000, 16.000000)
+        r = 0.020000, s = 0.040000
+        a = 1.000000, b = 1.000000
+        Homotopy classes B:     (-19.80 + -61.57i),     (0.17 + 1.69i), (69.44 + -66.37i),    (0.17 + 7.98i),  (89.42 + -3.11i),       (-89.07 + 12.78i),      (20.15 + 71.24i),       (-69.09 + 76.04i),     (49.46 + -135.92i),     (-109.05 + -56.77i),    (-89.07 + 6.49i),       (69.44 + -72.66i),     (138.70 + -140.72i),    (-39.78 + -124.84i),    (20.15 + 64.96i),       (158.68 + -71.17i),    (-69.09 + 82.33i),      (89.42 + 3.18i),        (158.68 + -77.46i),     (178.66 + -7.91i),     (49.46 + -129.64i),     (-158.33 + 87.13i),     (-19.80 + -55.29i),     (-178.31 + 17.58i),    (109.39 + 60.16i),      (-109.05 + -50.49i),    (-39.78 + -131.12i),    (-19.80 + -67.86i),    (-49.11 + 145.59i),     (109.39 + 66.44i),      (89.42 + -9.39i),       (-138.35 + 150.39i),   (40.13 + 134.51i),      (20.15 + 77.53i),       (-158.33 + 80.84i),     (118.72 + -210.27i),   (-198.29 + -51.97i),    (-49.11 + 139.31i),     (138.70 + -147.01i),    (-178.31 + 11.29i),    (-89.07 + 19.06i),      (178.66 + -14.19i),     (207.96 + -215.07i),    (29.48 + -199.19i),    (227.94 + -145.52i),    (-129.02 + -120.04i),   (-138.35 + 156.68i),    (-69.09 + 69.76i),
+        float tolerance = 0.100000
+        absolute tolerance for homotopy classes: 0.100000
+
+Output path:
+        cumulative length: 136.725189
+        g_image Riemann sum (accumulated uncertainty): 31.642765
+        L-value: (-69.09 + 69.76i)
+        Total states expanded: 47060940

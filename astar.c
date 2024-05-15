@@ -4,9 +4,6 @@
 /* Name of parameter containing path written to .json file */
 static const char * output_path_param_name = "A_star_output_path";
 
-/* Internal functions prototypes & helpers */
-static void backtrack_path(Params *params, vertex_t *goal_vertex, Optimal_Path * opt_path, F_t * F);
-
 /** Cost function implementation 
  * Now we have two discrete, adjacent points (x_1,y_1) and (x_2,y_2), in the s-step sized state grid for the robot.
  * Supposing that we have data, stored in a g_image matrix, at smaller r-step intervals, we are going to 
@@ -91,12 +88,12 @@ float zero_heuristic(
 
 /* A* helpers */
 
-bool A_star_goal_check(
-    Params * params, Optimal_Path * opt_path, /* hom_classes_list_t * B, */ double abs_tol, F_t * F,
-    vertex_t * current_vertex, int x_goal_step, int y_goal_step) 
+static bool A_star_goal_check(
+    Params * params, /* hom_classes_list_t * B, */ double abs_tol, F_t * F,
+    hom_class_t * hom_class, int x_goal_step, int y_goal_step) 
 {
-    int x_c = current_vertex->x_s;
-    int y_c = current_vertex->y_s;
+    int x_c = hom_class->endpoint_vertex->x_s;
+    int y_c = hom_class->endpoint_vertex->y_s;
 
     if ((x_c == x_goal_step && y_c == y_goal_step)
         /* For now no homotopy constraints checks 
@@ -104,17 +101,20 @@ bool A_star_goal_check(
         */
         ) {
             #ifdef ASTDBG
-            printf("Goal reached at (%d, %d) with path cost: %f\n", x_c, y_c, current_vertex->g_score);
+            printf(
+                "Goal reached at (%d, %d) from L-value (%.2f + %.2fi) with total path cost (g_score): %f\n", 
+                x_c, y_c, creal(hom_class->Lval), cimag(hom_class->Lval), hom_class->g_score
+            );
             #endif
             /** Reconstruct & assign path **/
-            backtrack_path(params, current_vertex, opt_path, F);
+            expand_backtrack(params, hom_class);
             return true;    // goal was found
     }
     return false;   // goal not found 
 }
 
-void print_path(
-    Params * params, Config * config, Optimal_Path * opt_path, float float_tol, 
+static void print_path(
+    Params * params, Config * config, hom_class_t * hom_class, float float_tol, 
     hom_classes_list_t * B, double abs_tol, int expanded_states) 
 {
     char * B_str = complex_list_to_string(B);
@@ -124,15 +124,15 @@ void print_path(
         "\ta = %f, b = %f\n"
         "\tHomotopy classes B: %s\n"
         "\tfloat tolerance = %f\n"
-        "\tdecimal tolerance for homotopy classes: %f\n"
+        "\tabsolute tolerance for homotopy classes: %f\n"
         "\nOutput path:\n"
         "\tcumulative length: %f\n" 
         "\tg_image Riemann sum (accumulated uncertainty): %f\n"
-        "\tL-value for optimal path: (%.2f + %.2fi)\n"
+        "\tL-value: (%.2f + %.2fi)\n"
         "\tTotal states expanded: %d\n",
     params->x_g, params->y_g, params->r, params->s, config->a, config->b, B_str,
-    float_tol, abs_tol, opt_path->len, opt_path->g_image_riemann_tot, 
-    creal(opt_path->Lval), cimag(opt_path->Lval), expanded_states
+    float_tol, abs_tol, hom_class->backtrack->absolute_length, hom_class->backtrack->g_image_riemann_tot, 
+    creal(hom_class->Lval), cimag(hom_class->Lval), expanded_states
     );
     free(B_str);
 }
@@ -141,14 +141,13 @@ void print_path(
 void A_star(
     Params * params,
     Config * config,
-    Optimal_Path * opt_path,
     float (*h) (int, int, int, int, Params *, Config * ),
     float (*c) (int, int, int, int, Params *, Config * ),
     float float_tol,
     /* Homotopy parameters */
     // hom_classes_list_t * B,    // blocked homotopy classes for the search
-    double abs_tol, // decimal tolerance for resolving between homotopy classes
-    F_t * F             // obstacle marker
+    double abs_tol,     // decimal tolerance for resolving between homotopy classes
+    F_t * F             // obstacle marker function parameters
     ) 
 {
     int expanded_states = 0;    // we consider a state explored whenever it is added to the closed set
@@ -194,40 +193,66 @@ void A_star(
             vertex_t * new_vertex = malloc(sizeof(vertex_t));
             new_vertex->x_s = xs;
             new_vertex->y_s = ys;
-            new_vertex->parent = NULL;
-            new_vertex->g_score = INFINITY;
-            new_vertex->f_score = INFINITY;
-            // new_vertex->next = NULL; only for old linked list implementation 
-            new_vertex->is_evaluated = false; // this means that element wasn't yet added to closed set
-            /* Homotopy addition */
             new_vertex->hom_classes = hom_classes_list_new(); // intialize empty list of Lvalues for each vertex
+
+            /** NOTE:
+            * In the case of a homotopic class based search, vertices are merely lists of homotopy classes
+            * corresponding to each point of the grid, and hence these properties are removed from vertices 
+            * as they are specific to homotopy class objects:
+            *
+                new_vertex->parent = NULL;
+                new_vertex->g_score = INFINITY;
+                new_vertex->f_score = INFINITY;
+                new_vertex->is_evaluated = false; // this means that element wasn't yet added to closed set
+            */
+
             // Save malloc'd vertex to matrix of vertex pointers 
             S[ys][xs] = new_vertex;
         }
     }
 
-    // Handle start vertex parameter intitializations 
+    // Initialize starting homotopy class object
     vertex_t * start_vertex = S[y_start_step][x_start_step];
-    start_vertex->g_score = 0.0f;
-    start_vertex->f_score = h(
+    hom_class_t * start_hom_class = (hom_class_t *) malloc(sizeof(hom_class_t));
+    start_hom_class->Lval = CMPLX(0.0, 0.0);
+    start_hom_class->next = NULL;   
+    start_hom_class->parent = NULL;
+    start_hom_class->g_score = 0.0f;
+    start_hom_class->f_score = h(
         x_start_step, y_start_step, x_goal_step, y_goal_step, params, config
     );
-    insert_Lval(start_vertex->hom_classes, CMPLX(0.0, 0.0), abs_tol);  // Initialize start vertex's Lvalue to 0 + 0i
+    start_hom_class->is_evaluated = false;
+    start_hom_class->endpoint_vertex = start_vertex;
+    start_hom_class->minheap_node = NULL;
+    start_hom_class->backtrack = NULL;
 
-    // Start priority queue, intitialized to the start vertex
-    open_set_t * open_set = open_set_new(); /** CAREFUL: not checking for NULL pointer return */
-    insert_sorted(open_set, start_vertex);
-    // Start main iteration, checking whether the open set is empty 
+    // Insert starting homotopy class object into the list of homotopy classes into the start vertex 
+    insert_hom_class(start_vertex->hom_classes, start_hom_class, abs_tol);  
+
+    // Initialize open set with desired accessor functions and data type for homotopy classes
+    open_set_t * open_set = open_set_new(
+        hom_class_get_f_score,
+        hom_class_set_minheap_node
+    ); /** CAREFUL: not checking for NULL pointer return here */
+
+    // Now insert the starting homotopy class object into the open set as a generic void *
+    insert_sorted(open_set, (void *) start_hom_class);
+
+    // Start main iteration for the A* algorithm
     while (!open_set_is_empty(open_set)) {
-        vertex_t * current_vertex = dequeue_min(open_set);
-        // flag the current vertex as evaluated (like adding it to closed set)
-        current_vertex->is_evaluated = true;
+        hom_class_t * curr_hom_class = dequeue_min(open_set);
+        curr_hom_class->is_evaluated = true; // dequeue homotopy class & add it to the closed set
         expanded_states++;
-        // keep the current x,y coordinates as local variables for clarity
-        int x_c = current_vertex->x_s;
-        int y_c = current_vertex->y_s;
 
-        /* In the case of no homotopy constraints, goal check & while-loop break / return here */
+        // keep the current x,y grid coordinates as local variables for clarity
+        int x_c = curr_hom_class->endpoint_vertex->x_s;
+        int y_c = curr_hom_class->endpoint_vertex->y_s;
+
+        // Here we would generally check for the goal state and break 
+        if (A_star_goal_check(params, /*B*/ abs_tol, F, curr_hom_class, x_goal_step, y_goal_step)) {
+            print_path(params, config, curr_hom_class, float_tol, curr_hom_class->endpoint_vertex->hom_classes, abs_tol, expanded_states); // show the current path
+            free_backtrack(curr_hom_class); // reset the path, since it was allocated at true return of A_star_goal_check
+        }
 
         /** Now start generating outneighbors, considering that 
          * 1) If we have a g_image under FLOAT_TOL, signaling a zero value, the state is inaccessible
@@ -245,73 +270,63 @@ void A_star(
             }
             // Now that we know that the vertex can be accessed, we can extract it 
             vertex_t * neighb_vertex = S[y_n][x_n];
-            // Check if the vertex is already in the closed set
-            
-            if (neighb_vertex->is_evaluated) {
-                continue;
-            }
-        
-            /* Now update iteratively the resulting homotpy classes of the neighbor, stemming from each homotopy class of the curr_vertex */
-            // Compute the Lvalue between the curr_vertex and neighb_vertex, scaling back to the map standard scale 
-            Complex L_curr = L(
+
+            // Compute L-step for the current transition
+            Complex L_step = L(
                 CMPLX(params->x_min + (x_c * params->s), params->y_min + (y_c * params->s)), 
                 CMPLX(params->x_min + (x_n * params->s), params->y_min + (y_n * params->s)),
                 F
             );
-            // Iteration logic
-            hom_class * curr_vertex_hom_class = current_vertex->hom_classes->head;
-            while (curr_vertex_hom_class != NULL) {
-                // Get the L-value for the resulting homotopy class into the neighbor
-                Complex neighb_Lval = (curr_vertex_hom_class->Lval + L_curr);
-                // Ensure this homotopy class is inserted, and extract the corresponding struct
-                insert_Lval(neighb_vertex->hom_classes, neighb_Lval, abs_tol);  // handles the initialization of new hom_class struct values
-                hom_class * neighb_vertex_hom_class = hom_class_get(neighb_vertex->hom_classes, neighb_Lval, abs_tol);
-                /* Now repeat the standard f, g, parent update procedure, this time at the homotopy-class level */
-                float tent_g = curr_vertex_hom_class->g_score + c(x_c, y_c, x_n, y_n, params, config); // use same cost here
-                if (tent_g < neighb_vertex_hom_class->g_score) {
-                    /* Update f,g and add all the necessary backtracking information */
-                    neighb_vertex_hom_class->g_score = tent_g;  // use same heuristic here:
-                    neighb_vertex_hom_class->f_score = tent_g + h(x_n, y_n, x_goal_step, y_goal_step, params, config);
-                    // neighb_vertex_hom_class->parent_hom_class = curr_vertex_hom_class;
-                    neighb_vertex_hom_class->parent_vertex = current_vertex;
-                }
-                // March to the next homotopy class
-                curr_vertex_hom_class = curr_vertex_hom_class->next;
+
+            // Add the L-step to the L-value for the current homotopy class to obtain the neighboring L value
+            Complex neighb_Lval = curr_hom_class->Lval + L_step;
+
+            // Search for the homtopy class corresponding to the given endpoint vertex and the neighboring L value
+            hom_class_t * neighb_hom_class = hom_class_get(neighb_vertex->hom_classes, neighb_Lval, abs_tol);
+
+            /* Loop test probably to be introduced here, before creating & enqueuing new homotopy class*/
+            
+            // If we haven't found it, then we have just discovered a new homotopy class, and thus we initialize it 
+            if (neighb_hom_class == NULL) {
+                neighb_hom_class = (hom_class_t *) malloc(sizeof(hom_class_t));
+                neighb_hom_class->Lval = neighb_Lval;
+                neighb_hom_class->next = NULL; 
+                neighb_hom_class->parent = NULL;
+                neighb_hom_class->g_score = INFINITY;
+                neighb_hom_class->f_score = INFINITY;
+                neighb_hom_class->is_evaluated = false;
+                neighb_hom_class->endpoint_vertex = neighb_vertex;
+                neighb_hom_class->minheap_node = NULL;
+                neighb_hom_class->backtrack = NULL; 
+                // Insert it into the list of homotopy classes for the neighbor vertex 
+                insert_hom_class(neighb_vertex->hom_classes, neighb_hom_class, abs_tol);
             }
 
-            /* Debugging wrapper: check for goal states */
-            // Goal state check at suboptimal stage 
-            if (A_star_goal_check(params, opt_path, /*B,*/ abs_tol, F, neighb_vertex, x_goal_step, y_goal_step)) {
-                print_path(params, config, opt_path, float_tol, neighb_vertex->hom_classes, abs_tol, expanded_states); // show the current path
-                free_point_array(opt_path); // reset the points in the path
-            }
-            /* Debugging: check for goal states */
-
-
-            /* The algorithm now continues as in the standard case, independently of the homotopy computations */
-            /* Instead, we could also determine rules by which homtopy classes affect the overall behavior / policy of the graph search */
-
-            // Calculate tentative g_score
-            float tent_g = current_vertex->g_score + c(
-                x_c, y_c, x_n, y_n, params, config
-            );
-            // If no better path found, continue
-            if (tent_g >= neighb_vertex->g_score) {
+            // Check if the homotopy class is already in the closed set 
+            if (neighb_hom_class->is_evaluated) {
                 continue;
             }
-            // If we are here, then we have found a new shortest path to neighb_vertex
+            // Calculate tentative g_score for homotopy class
+            float tent_g = curr_hom_class->g_score + c(
+                x_c, y_c, x_n, y_n, params, config
+            );
+            // If no better path found for this homotopy class, continue
+            if (tent_g >= neighb_hom_class->g_score) {
+                continue;
+            }
+            // If we are here, then we have found a new shortest path for this homotopy class
             #ifdef ASTDBG
-            printf("Updating vertex (%d, %d) from g_score: %f to g_score: %f\n", neighb_vertex->x_s, neighb_vertex->y_s, neighb_vertex->g_score, tent_g);
+            printf("Updating some homotopy class at vertex (%d, %d) from g_score: %f to g_score: %f\n", neighb_vertex->x_s, neighb_vertex->y_s, neighb_vertex->g_score, tent_g);
             #endif
-            neighb_vertex->parent  = current_vertex;
-            neighb_vertex->g_score = tent_g;
-            neighb_vertex->f_score = tent_g + h(x_n, y_n, x_goal_step, y_goal_step, params, config);
+            neighb_hom_class->parent  = curr_hom_class;
+            neighb_hom_class->g_score = tent_g;
+            neighb_hom_class->f_score = tent_g + h(x_n, y_n, x_goal_step, y_goal_step, params, config);
 
-            /** CRITICAL: If the vertex is already in the min heap, dedrease key, otherwise add it */
-            if (neighb_vertex->minheap_node) {
-                decrease_key(open_set, neighb_vertex->minheap_node, neighb_vertex->f_score);
+            /** CRITICAL: If the homotopy class is already in the min heap, dedrease key, otherwise add it */
+            if (neighb_hom_class->minheap_node) {
+                decrease_key(open_set, neighb_hom_class->minheap_node, neighb_hom_class->f_score);
             } else {
-                insert_sorted(open_set, neighb_vertex);
+                insert_sorted(open_set, neighb_hom_class);
             }
         }
         }
@@ -328,6 +343,7 @@ void A_star(
     for (int ys = 0; ys < params->ys_steps; ys++) {
         for (int xs = 0; xs < params->xs_steps; xs++) {
             vertex_t * curr_vert = S[ys][xs];
+            // This free's all the dynamically allocated homotopy classes
             free_hom_classes_list(curr_vert->hom_classes);    
             free(curr_vert); // free vertex * within matrix
         }
@@ -342,6 +358,109 @@ void A_star(
     printf("\nTime elapsed:\n\t%.5f seconds\n\n", elapsed);
     #endif
 }
+
+
+void expand_backtrack(Params *params, hom_class_t * hom_class) {
+    
+    int edge_number     = 0;       // number of discrete edges
+    float abs_len_cumul = 0.0f;    // cumulative length of path, scaled up
+    float riem_cumul    = 0.0f;    // cumulative rieamnn sum for g_image buildup, scaled up
+    int x_curr, y_curr;            // backtracking coordinates
+    int x_next, y_next;         
+
+    // First, find the length of the path by traversing from goal to start
+    hom_class_t * curr_hom_class = hom_class;
+    while (curr_hom_class != NULL) {
+        edge_number++;
+        curr_hom_class = curr_hom_class->parent;
+    }
+
+    // Allocate backtracking path structure from here 
+    if (hom_class->backtrack == NULL) {
+        hom_class->backtrack = (Backtrack_Path *) malloc (sizeof(Backtrack_Path));
+    }
+
+    Backtrack_Path * bt = hom_class->backtrack;
+
+    // Set length for path struct
+    bt->total_edges = edge_number;
+
+    // Allocate memory for the points list
+    bt->point_list = malloc(sizeof(float *) * edge_number);
+    for (int i = 0; i < edge_number; i++) {
+        bt->point_list[i] = malloc(sizeof(float) * 2); // Each point has two coordinates (x, y)
+        if (!bt->point_list[i]) {
+            fprintf(stderr, "Memory allocation failed for point_list[%d].\n", i);
+            return;
+        }
+    }
+
+    // Backtrack from goal to start and store the path in reverse
+    curr_hom_class = hom_class;
+    for (int i = edge_number - 1; i >= 0; i--) {
+
+        // Extract coordinates from current vertex and parent if there is one
+        x_curr = x_next = curr_hom_class->endpoint_vertex->x_s;
+        y_curr = y_next = curr_hom_class->endpoint_vertex->y_s;
+        if (curr_hom_class->parent != NULL) {
+            x_next = curr_hom_class->parent->endpoint_vertex->x_s;
+            y_next = curr_hom_class->parent->endpoint_vertex->y_s;
+        }
+
+        // Re-compute length and Riemann sum as they were originally computed, this time without the constants a,b
+        abs_len_cumul  +=                 len(x_next, y_next, x_curr, y_curr, params);
+        riem_cumul     += g_image_riemann_sum(x_next, y_next, x_curr, y_curr, params);
+
+        // Record points in the array containing the path
+        bt->point_list[i][0] = params->x_min + (x_curr * params->s); // Convert x_s back to x
+        bt->point_list[i][1] = params->y_min + (y_curr * params->s); // Convert y_s back to y
+
+        #ifdef ASTDBG
+        printf("Backtracking path point[%d]: (%.2f, %.2f)\n", i, bt->point_list[i][0], bt->point_list[i][1]);
+        #endif
+
+        #ifdef PATH_WRITE_DBG
+        const int str_size = 64;
+        char * Lval_string = (char*) malloc(str_size);
+        snprintf(Lval_string, str_size, "(%.2f + %.2fi)", creal(hom_class->Lval), cimag(hom_class->Lval));
+        write_json("./params.json", Lval_string, bt->point_list, edge_number - 1, 2);
+        free(Lval_string);
+        #endif
+
+        curr_hom_class = curr_hom_class->parent;    // iterate backwards through vertices on optimal path
+    }
+
+    // Set elements for the path
+    bt->g_image_riemann_tot = riem_cumul;
+    bt->absolute_length     = abs_len_cumul;
+
+}
+
+void free_backtrack(hom_class_t * hom_class) {
+
+    Backtrack_Path * bt = hom_class->backtrack;
+
+    // Verify that both path struct and internal point list are accessible 
+    if (bt == NULL || bt->point_list == NULL || bt->total_edges == 0) {
+        DEBUG_ERROR("free_point_array: opt_path = NULL OR opt_path->point_list = NULL OR opt_path->l = 0");
+        return;
+    }
+
+    // Edge iteration through array
+    for (int i = 0; i < bt->total_edges; i++) {
+        // Verify that we are actually free'ing
+        if (bt->point_list[i] == NULL) {
+            DEBUG_ERROR("free_point_array: unexpected NULL value for opt_path->point_list[i]");
+        }
+        // Free the point
+        free(bt->point_list[i]);
+    }
+
+    // Finally, free the backtrack structure pointer itself
+    free(bt); 
+}
+
+
 
 /* Unit testing area */
 
@@ -363,7 +482,6 @@ int main(int argc, char *argv[]) {
     float a, b;
     Config * config;
     Params * params;
-    Optimal_Path * opt_path;
 
     // Validate input 
     if (argc != 4) {  // Check if the number of arguments is correct
@@ -434,9 +552,6 @@ int main(int argc, char *argv[]) {
     printf("Initializing A* with grid size: %dx%d\n", params->xs_steps, params->ys_steps);
     #endif
 
-    // Allocate memory for the path struct
-    opt_path = malloc(sizeof(Optimal_Path));
-
     #ifdef ASTCLCK
     CALCULATE_ELAPSED_TIME(start, end, elapsed);
     printf("\nInvoking A* %.5f seconds from start of astar main() program execution\n", elapsed);
@@ -444,25 +559,19 @@ int main(int argc, char *argv[]) {
 
     // Invoke the A* algorithm on all the inputs generated
     A_star(
-        params, config, opt_path, 
+        params, config,
         zero_heuristic, // this essentially turns A* into Dijkstra's for uniform exploration
         edge_cost, 0.1,
-            /* Homotopy additions */
+        /* Homotopy additions */
             /*B,*/ 0.1, F
     );
-    if (opt_path->point_list == NULL) {
-        DEBUG_ERROR("A_star returned NULL opt_path->point_list. Exiting...");
-        exit(2);
-    }
 
     // Write the path to the .json file
-    write_json(input_json_path, output_path_param_name, opt_path->point_list, opt_path->l, 2); 
+    // write_json(input_json_path, output_path_param_name, opt_path->point_list, opt_path->l, 2); 
 
     // Clean up
     free(input_json_path);
     free(config);
-    free_point_array(opt_path);
-    free(opt_path);
     // free_Lval_list(B);
     delete_obstacle_marker_func_params(F);
     /** TODO: Find ways to clean up the params struct; probably manual thorough cleanup required for grids */
@@ -474,94 +583,4 @@ int main(int argc, char *argv[]) {
 #endif
 
 
-/* Given already-malloc'd path struct with SET length, allocates internal */
-void allocate_point_array() {
-    // not needed for now since handled internally by backtrack_path
-}
-
-/* Given already-malloc'd path struct with SET length, deallocates internal point list */
-void free_point_array(Optimal_Path * opt_path) {
-
-    // Verify that both path struct and internal point list are accessible 
-    if (opt_path == NULL || opt_path->point_list == NULL || opt_path->l == 0) {
-        DEBUG_ERROR("free_point_array: opt_path = NULL OR opt_path->point_list = NULL OR opt_path->l = 0");
-        return;
-    }
-
-    // Begin iteration through array
-    for (int i = 0; i < opt_path->l; i++) {
-        // Verify that we are actually free'ing
-        if (opt_path->point_list[i] == NULL) {
-            DEBUG_ERROR("free_point_array: unexpected NULL value for opt_path->point_list[i]");
-        }
-        // Free the array
-        free(opt_path->point_list[i]);
-    }
-}
-
-/** Path backtracking **/
-/** IMPORTANT: Takes an already-allocated Optimal_Path struct, but responsible to allocate internal point list */
-void backtrack_path(Params *params, vertex_t *goal_vertex, Optimal_Path * opt_path, F_t * F) {
-    
-    int path_length  = 0;       // number of discrete steps
-    float len_cumul  = 0.0f;    // cumulative length of path, scaled up
-    float riem_cumul = 0.0f;    // cumulative rieamnn sum for g_image buildup, scaled up
-    int x_curr, y_curr;         // backtracking coordinates
-    int x_next, y_next;         
-
-    // First, find the length of the path by traversing from goal to start
-    vertex_t *current_vertex = goal_vertex;
-    while (current_vertex != NULL) {
-        path_length++;
-        current_vertex = current_vertex->parent;
-    }
-
-    // Set length for path struct
-    opt_path->l = path_length;
-
-    // Allocate memory for the points list
-    opt_path->point_list = malloc(sizeof(float *) * path_length);
-    for (int i = 0; i < path_length; i++) {
-        opt_path->point_list[i] = malloc(sizeof(float) * 2); // Each point has two coordinates (x, y)
-        if (!opt_path->point_list[i]) {
-            fprintf(stderr, "Memory allocation failed for point_list[%d].\n", i);
-            return;
-        }
-    }
-
-    // Backtrack from goal to start and store the path in reverse
-    current_vertex = goal_vertex;
-    for (int i = path_length - 1; i >= 0; i--) {
-
-        // Extract coordinates from current vertex and parent if there is one
-        x_curr = x_next = current_vertex->x_s;
-        y_curr = y_next = current_vertex->y_s;
-        if (current_vertex->parent != NULL) {
-            x_next = current_vertex->parent->x_s;
-            y_next = current_vertex->parent->y_s;
-        }
-
-        // Re-compute length and Riemann sum as they were originally computed, this time without the constants a,b
-        len_cumul  +=                 len(x_next, y_next, x_curr, y_curr, params);
-        riem_cumul += g_image_riemann_sum(x_next, y_next, x_curr, y_curr, params);
-
-        // Record points in the array containing the path
-        opt_path->point_list[i][0] = params->x_min + (x_curr * params->s); // Convert x_s back to x
-        opt_path->point_list[i][1] = params->y_min + (y_curr * params->s); // Convert y_s back to y
-
-        #ifdef ASTDBG
-        printf("Backtracking path point[%d]: (%.2f, %.2f)\n", i, opt_path->point_list[i][0], opt_path->point_list[i][1]);
-        #endif
-
-        current_vertex = current_vertex->parent;    // iterate backwards through vertices on optimal path
-    }
-
-    // Set elements for the path
-    opt_path->g_image_riemann_tot = riem_cumul;
-    opt_path->len = len_cumul;
-
-    /* Homotopy addition: calculate path integral to determine homotopy class (slightly inefficient as it does a double path traversal) */
-    opt_path->Lval = calculate_path_integral(opt_path->point_list, path_length, F);
-
-}
 

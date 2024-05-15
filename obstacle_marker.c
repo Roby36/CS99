@@ -52,7 +52,7 @@ Complex L(Complex z1, Complex z2, F_t * F) {
     Complex l_val = CMPLX(0.0, 0.0); // initialize running L-value
     for (int l = 0; l < (F->N); l++) {
 
-        // Compute A_l
+        /* A[l] can be computed outside since this residue computation independent from */
         prod = CMPLX(1.0, 0.0); // Initialize running product
         zeta_l = (F->obstacle_markers)[l]; // current obstacle marker
         // Iterate through obstacles
@@ -61,6 +61,9 @@ Complex L(Complex z1, Complex z2, F_t * F) {
             prod *= (zeta_l - (F->obstacle_markers)[j]);
         }
         A_l = F_0(zeta_l, (F->BL), (F->TR), (F->a), (F->b)) / prod;
+
+
+
         // Compute log differences
         log_diff =  log(cabs(z2 - zeta_l)) - log(cabs(z1 - zeta_l));
 
