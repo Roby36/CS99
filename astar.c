@@ -115,7 +115,7 @@ static bool A_star_goal_check(
 
 static void print_path(
     Params * params, Config * config, hom_class_t * hom_class, float float_tol, 
-    hom_classes_list_t * B, double abs_tol, int expanded_states) 
+    hom_classes_list_t * B, double abs_tol, int expanded_states, int open_set_size) 
 {
     char * B_str = complex_list_to_string(B);
     printf("\nA* found path to goal with inputs:\n"
@@ -129,49 +129,19 @@ static void print_path(
         "\tcumulative length: %f\n" 
         "\tg_image Riemann sum (accumulated uncertainty): %f\n"
         "\tL-value: (%.2f + %.2fi)\n"
-        "\tTotal states expanded: %d\n",
+        "\tTotal states expanded: %d\n"
+        "\tCurrent size of the open set (enqueued states): %d\n",
     params->x_g, params->y_g, params->r, params->s, config->a, config->b, B_str,
     float_tol, abs_tol, hom_class->backtrack->absolute_length, hom_class->backtrack->g_image_riemann_tot, 
-    creal(hom_class->Lval), cimag(hom_class->Lval), expanded_states
+    creal(hom_class->Lval), cimag(hom_class->Lval), expanded_states, open_set_size
     );
     free(B_str);
 }
 
-/**************** Main A* algorithm implementation ****************/
-void A_star(
-    Params * params,
-    Config * config,
-    float (*h) (int, int, int, int, Params *, Config * ),
-    float (*c) (int, int, int, int, Params *, Config * ),
-    float float_tol,
-    /* Homotopy parameters */
-    // hom_classes_list_t * B,    // blocked homotopy classes for the search
-    double abs_tol,     // decimal tolerance for resolving between homotopy classes
-    F_t * F             // obstacle marker function parameters
-    ) 
-{
-    int expanded_states = 0;    // we consider a state explored whenever it is added to the closed set
+/* Vertex allocation and default initialization for A* */
+static vertex_t *** initialize_vertices(Params * params) {
 
-    #ifdef ASTCLCK
-    struct timeval start, end;
-    long seconds, microseconds;
-    double elapsed;
-    gettimeofday(&start, NULL); // Start clock 
-    #endif
-
-    // Check first that we ahve properly computed the image of g
-    if (params->g_image == NULL) {
-        DEBUG_ERROR("params->g_image = NULL");
-        return;
-    }
-
-    // Convert start and goal coordinates to the relative s-steps
-    const int x_start_step = (int) (params->x_s - params->x_min) / params->s;
-    const int x_goal_step  = (int) (params->x_g - params->x_min) / params->s;
-    const int y_start_step = (int) (params->y_s - params->y_min) / params->s;
-    const int y_goal_step  = (int) (params->y_g - params->y_min) / params->s;    
-
-    /* This dynamic grid allocation within A* is deliberate to ensure that the states are perfectly blank at each run of the algorithm */
+    /* This dynamic grid allocation called within A* is deliberate to ensure that the states are perfectly blank at each run of the algorithm */
     vertex_t *** S = malloc(params->ys_steps * sizeof(vertex_t **));  // row pointers
     if (!S) {
         fprintf(stderr, "Failed to allocate memory for grid rows.\n");
@@ -210,6 +180,61 @@ void A_star(
             S[ys][xs] = new_vertex;
         }
     }
+    return S;
+}
+
+/* Corresponding clean-up routine */
+void delete_vertices(vertex_t *** S, Params * params) {
+
+    for (int ys = 0; ys < params->ys_steps; ys++) {
+        for (int xs = 0; xs < params->xs_steps; xs++) {
+            vertex_t * curr_vert = S[ys][xs];
+            // This free's all the dynamically allocated homotopy classes
+            free_hom_classes_list(curr_vert->hom_classes);    
+            free(curr_vert); // free vertex * within matrix
+        }
+        free(S[ys]); // free row pointer (vertex **)
+    } 
+    free(S);
+
+}
+
+/**************** Main A* algorithm implementation ****************/
+void A_star(
+    Params * params,
+    Config * config,
+    float (*h) (int, int, int, int, Params *, Config * ),
+    float (*c) (int, int, int, int, Params *, Config * ),
+    float float_tol,
+    /* Homotopy parameters */
+    // hom_classes_list_t * B,    // blocked homotopy classes for the search
+    double abs_tol,     // decimal tolerance for resolving between homotopy classes
+    F_t * F             // obstacle marker function parameters
+    ) 
+{
+    int expanded_states = 0;    // we consider a state explored whenever it is added to the closed set
+
+    #ifdef ASTCLCK
+    struct timeval start, end;
+    long seconds, microseconds;
+    double elapsed;
+    gettimeofday(&start, NULL); // Start clock 
+    #endif
+
+    // Check first that we ahve properly computed the image of g
+    if (params->g_image == NULL) {
+        DEBUG_ERROR("params->g_image = NULL");
+        return;
+    }
+
+    // Convert start and goal coordinates to the relative s-steps
+    const int x_start_step = (int) (params->x_s - params->x_min) / params->s;
+    const int x_goal_step  = (int) (params->x_g - params->x_min) / params->s;
+    const int y_start_step = (int) (params->y_s - params->y_min) / params->s;
+    const int y_goal_step  = (int) (params->y_g - params->y_min) / params->s;    
+
+    /* This dynamic grid allocation within A* is deliberate to ensure that the states are perfectly blank at each run of the algorithm */
+    vertex_t *** S = initialize_vertices(params);
 
     // Initialize starting homotopy class object
     vertex_t * start_vertex = S[y_start_step][x_start_step];
@@ -250,7 +275,8 @@ void A_star(
 
         // Here we would generally check for the goal state and break 
         if (A_star_goal_check(params, /*B*/ abs_tol, F, curr_hom_class, x_goal_step, y_goal_step)) {
-            print_path(params, config, curr_hom_class, float_tol, curr_hom_class->endpoint_vertex->hom_classes, abs_tol, expanded_states); // show the current path
+            print_path(
+                params, config, curr_hom_class, float_tol, curr_hom_class->endpoint_vertex->hom_classes, abs_tol, expanded_states, open_set_size(open_set)); // show the current path
             free_backtrack(curr_hom_class); // reset the path, since it was allocated at true return of A_star_goal_check
         }
 
@@ -263,29 +289,77 @@ void A_star(
             // Note that the same state is automatically skipped by the later is_evaluated condition
             int x_n = x_c + dx; // fetch step coordinates of neighbouring state
             int y_n = y_c + dy;
-            // Check accessibility conditions
-            if (x_n < 0 || x_n >= params->xs_steps || y_n < 0 || y_n >= params->ys_steps ||
-                params->g_image[(params->s_div_r) * y_n][(params->s_div_r) * x_n] < float_tol) {
+
+            // Check accessibility conditions for the neighbor
+            if (!is_accessible(params, x_n, y_n, float_tol)) {
                 continue; 
             }
+
             // Now that we know that the vertex can be accessed, we can extract it 
             vertex_t * neighb_vertex = S[y_n][x_n];
 
             // Compute L-step for the current transition
-            Complex L_step = L(
-                CMPLX(params->x_min + (x_c * params->s), params->y_min + (y_c * params->s)), 
-                CMPLX(params->x_min + (x_n * params->s), params->y_min + (y_n * params->s)),
-                F
-            );
+            Complex L_step = get_Lval(F, x_c, y_c, x_n, y_n);
 
             // Add the L-step to the L-value for the current homotopy class to obtain the neighboring L value
             Complex neighb_Lval = curr_hom_class->Lval + L_step;
 
+            /** LOOPTEST: (this method proved incorrect)
+             *  NOTE: Only checks for loop around ONE obstacle, clockwise or anticlockwise
+             * To test if we discovered a homotopy class that has just generated a loop around an obstacle,
+             * we test if the current L-value for the neighbor can be procuced by adding or subtracting
+             * 2(pi)i * Res(some obstacle) from the L-value of any other homotopy class into the neighbor,
+             * which would mean that an existing homotopy class for the neighbor, plus a loop around some 
+             * obstacle is continuously deformable into the homotopy class we just discovered 
+            */
+           /*
+            Complex * A = get_residues(F);
+            hom_class_t * nbr_hom_class_it = neighb_vertex->hom_classes->head;
+            bool loop = false;
+            // Iteration through all homotopy classes into the neighbor
+            while (!loop && nbr_hom_class_it != NULL) {
+                // Iteration through the residue for each obstacle
+                for (int i = 0; i < params->num_obstacles; i++) {
+                    // Key comparison to determine if we have detected a loop
+                    Complex res_off = 2*M_PI*CMPLX(0.0, 1.0) * A[i];    // 2(pi)iRes(\zeta_i)
+                    if (
+                        cmplx_compare(nbr_hom_class_it->Lval + res_off, neighb_Lval, abs_tol) ||
+                        cmplx_compare(nbr_hom_class_it->Lval - res_off, neighb_Lval, abs_tol)
+                    ) {
+                        loop = true;
+                        #ifdef LOOP_DBG
+                        printf(
+                            "\tPotential loop detected at point (%.2f + %.2fi)"
+                            " states expanded: %d\n",
+                            params->x_min + (x_n * params->s), params->y_min + (y_n * params->s), expanded_states
+                        );
+                        #endif
+                        break; // breaks from inner for-loop
+                    }
+                }
+                nbr_hom_class_it = nbr_hom_class_it->next;
+            }
+            */
+        
+           /** LOOPTEST: The backtracing approach:
+            * This approach is much simpler, but potentially inefficient.
+            * It merely involves backtracing down the current homotopy class, 
+            * until we either find the current neighbor vertex (certifying a loop)
+            * or reach the end 
+           */
+          bool loop;
+          hom_class_t * nbr_hom_class_it = curr_hom_class->parent;
+          
+
+
+            // Skip this iteration if we have found a loop
+            if (loop) {
+                continue;
+            }
+
             // Search for the homtopy class corresponding to the given endpoint vertex and the neighboring L value
             hom_class_t * neighb_hom_class = hom_class_get(neighb_vertex->hom_classes, neighb_Lval, abs_tol);
 
-            /* Loop test probably to be introduced here, before creating & enqueuing new homotopy class*/
-            
             // If we haven't found it, then we have just discovered a new homotopy class, and thus we initialize it 
             if (neighb_hom_class == NULL) {
                 neighb_hom_class = (hom_class_t *) malloc(sizeof(hom_class_t));
@@ -332,24 +406,13 @@ void A_star(
         }
     }
 
-    // Clean up (memory safe?)
+    // Clean up 
     #ifdef ASTDBG
     printf("Cleaning up resources...\n");
     #endif
 
     free_open_set(open_set); 
-
-    // Deallocation of the grid
-    for (int ys = 0; ys < params->ys_steps; ys++) {
-        for (int xs = 0; xs < params->xs_steps; xs++) {
-            vertex_t * curr_vert = S[ys][xs];
-            // This free's all the dynamically allocated homotopy classes
-            free_hom_classes_list(curr_vert->hom_classes);    
-            free(curr_vert); // free vertex * within matrix
-        }
-        free(S[ys]); // free row pointer (vertex **)
-    } 
-    free(S);
+    delete_vertices(S, params); // grid deallocation within A*
 
     // print_path(params, config, opt_path, float_tol, B, abs_tol, expanded_states);
     // Add timestamp under general print statement
@@ -477,6 +540,7 @@ int main(int argc, char *argv[]) {
     gettimeofday(&start, NULL); // Start clock 
     #endif
 
+    const float float_tol = 0.1f;
     char * input_json_path;
     char * endptr;  // Pointer to check conversion status
     float a, b;
@@ -534,7 +598,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* Homotopic addition: Extract obstacle marker parameters from parameters, and define blocked homotopy classes */
-    F_t * F = extract_obstacle_marker_func_params(params);
+    F_t * F = initialize_obstacle_marker_func_params(params, float_tol);
     // hom_classes_list_t * B = Lval_list_new();    // start empty here, allowing all homotopy classes
     // Hard-coding some previously identified homotopy classes that we want to try to block:
     // insert_Lval(B, CMPLX(-19.80, -61.57), 0.1);
@@ -561,7 +625,7 @@ int main(int argc, char *argv[]) {
     A_star(
         params, config,
         zero_heuristic, // this essentially turns A* into Dijkstra's for uniform exploration
-        edge_cost, 0.1,
+        edge_cost, float_tol,
         /* Homotopy additions */
             /*B,*/ 0.1, F
     );

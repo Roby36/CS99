@@ -59,19 +59,12 @@ hom_class_t * hom_class_get(hom_classes_list_t *hom_classes_list, Complex Lval, 
     // NULL if we pass a NULL list
     if (!hom_classes_list) return NULL;
 
-    // Extract real and imaginary parts
-    double Lval_re = creal(Lval);
-    double Lval_im = cimag(Lval);
-
     // List iteration logic
     hom_class_t * it = hom_classes_list->head;
     while (it != NULL) {
-        double tracer_Lval_re = creal((it)->Lval);
-        double tracer_Lval_im = cimag((it)->Lval);
-        // If we are within abs_tol for real AND imaginary part, then we consider it and return it
-        if (fabs(tracer_Lval_re - Lval_re) < abs_tol &&
-            fabs(tracer_Lval_im - Lval_im) < abs_tol) {
-                return (it);
+        // Check if iterator's Lval is within range of desired Lval
+        if (cmplx_compare(Lval, it->Lval, abs_tol)) {
+            return it;
         }
         // Slide tracer forward until we encounter NULL, updating the last pointer each time
         it = it->next;

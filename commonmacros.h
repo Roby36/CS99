@@ -14,4 +14,6 @@
 // #define HC_UT 1
 // #define LVAL_UT 1
 #define PATH_WRITE_DBG 1
+#define LVALCLCK 1
+// #define LOOP_DBG 1
 
