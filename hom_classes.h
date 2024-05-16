@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "commonmacros.h"
+#include "utils.h"
 
 typedef double complex Complex;
 

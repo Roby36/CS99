@@ -163,6 +163,11 @@ void free_open_set(open_set_t *set) {
     free(set);
 }
 
+/* Simple getters */
+int open_set_size(open_set_t * set) {
+    return (set->size);
+}
+
 
 /* Define down here the underlying getters and setters for the supported types (could also be defined outside of the file) */
 

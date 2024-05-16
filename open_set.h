@@ -40,5 +40,8 @@ void * dequeue_min(open_set_t *set);
 void decrease_key(open_set_t *set, minheap_node *node, float new_key);
 void free_open_set(open_set_t *set); 
 
+/* Simple getters */
+int open_set_size(open_set_t * set);
+
 
 
