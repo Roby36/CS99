@@ -1,29 +1,19 @@
 
 #include "hom_classes.h"
 
-/* This linked list-like data structure handles all the operations necessary for processing vertex L-values */
-
-/*
-hom_class_t * hom_class_new(Complex Lval) {
-
-    hom_class_t * hom_class_new = (hom_class_t *) malloc(sizeof(hom_class_t));
-    if (hom_class_new == NULL) {
-        fprintf(stderr, "Error: Memory allocation failed for hom_class\n");
-        return NULL; // Return NULL to indicate failure
-    }
-
-    hom_class_new->Lval = Lval;
-    hom_class_new->next = NULL;
-    // Initialize graph properties as they would be initialized for new vertex
-    hom_class_new->parent = NULL;
-    // hom_class_new->parent_hom_class = NULL;
-    hom_class_new->g_score = INFINITY;
-    hom_class_new->f_score = INFINITY;
-
-    return hom_class_new;
-}
+/** This linked list-like data structure handles 
+ * the operations necessary for processing L-values associated
+ * with each vertex  
 */
 
+/***** hom_classes_list_new ******* 
+ * 
+ * This function allocates a linked list data structure containing homotopy classes,
+ * and returns its corresponding pointer.
+ * 
+ * NOTE: Caller responsible for calling free_hom_classes_list on the pointer returned 
+ *       to free the memory malloc'd by this function 
+ */
 hom_classes_list_t *hom_classes_list_new() {
 
     // Allocate memory for the open_set structure
@@ -41,8 +31,14 @@ hom_classes_list_t *hom_classes_list_new() {
     return hom_classes_list; // Return the pointer to the newly created open set
 }
 
-// Clean-up function 
-/** CAREFUL: This function free's also the internal hom_class objects, which were not allocated by the module itself */
+/****** free_hom_classes_list ******
+ * 
+ * This is the corresponding clean-up routine for hom_classes_list_new,
+ * called when we finished using a hom_classes_list_t struct.
+ * 
+ * NOTE: This function free's also the internal hom_class objects, 
+ *        which were NOT allocated by the module itself but rather outside of it
+ */
 void free_hom_classes_list(hom_classes_list_t *hom_classes_list) {
     hom_class_t *current = hom_classes_list->head;
     while (current != NULL) {
@@ -53,7 +49,17 @@ void free_hom_classes_list(hom_classes_list_t *hom_classes_list) {
     free(hom_classes_list);
 }
 
-/* Extract from the list the details for a homotopic class corresponding to some Lval */ 
+/****** hom_class_get *******
+ * 
+ * Inputs:
+ *  - hom_classes_list_t struct pointer within which we want to search a homotopy class with some Lvalue descriptor
+ *  - Complex valued L-value we want to search for in the linked list of homotopy classes
+ *  - double absolute tolerance value within which we are expecting to find the L-value
+ * 
+ * Output:
+ *  - If the homotopy class with the desired L-value is present, return directly the pointer to it
+ *  - If no homotopy class with the desired L-value is present, return NULL 
+ */
 hom_class_t * hom_class_get(hom_classes_list_t *hom_classes_list, Complex Lval, double abs_tol) {
 
     // NULL if we pass a NULL list
@@ -72,7 +78,27 @@ hom_class_t * hom_class_get(hom_classes_list_t *hom_classes_list, Complex Lval, 
     return NULL;   // If we have gone through the entire successfully, then it means it is not contained
 }
 
-/* Insert an L_value only if distinct, and return boolean  */
+/******* insert_hom_class ********
+ * 
+ * Inputs:
+ *  - hom_classes_list_t struct pointer within which we desire to insert a new homotopy class
+ *  - pointer to already-allocated homotopy class struct that we want to insert
+ *  - double absolute tolerance value to determine if the homotopy class is already in the list
+ * 
+ * Outputs:
+ *  - false if some homotopy class with the same L-value is already present in the list,
+ *    and homotopy class therefore is not inserted, even if it may possibly have different feaures, 
+ *    such as f_score, g_score, backtrack etc.
+ *  - true if no homotopy class with the same L-value is present in the list,
+ *    and homotopy class is therefore successfully appended to the linked list
+ * 
+ * NOTE: This function requires an already-allocated homtopy class struct, and the caller is responsible for that.
+ *       The linked list is merely keyed by the L-values of homtopy classes. It is thus a perfect system to store 
+ *       a small representative sample of distinct homotopy classes, but not suited for any type of exhaustive list.
+ *       
+ *      It therefore should not be confused with the open set, which is the data structure actually storing all the possible 
+ *      homotopy classes structs in A*, many of which with the same L-values.   
+ */
 bool insert_hom_class(hom_classes_list_t *hom_classes_list, hom_class_t * hom_class, double abs_tol) {
 
     // Check NULL inputs
@@ -91,42 +117,14 @@ bool insert_hom_class(hom_classes_list_t *hom_classes_list, hom_class_t * hom_cl
     return true;
 }
 
-/* Return hom_class struct with minimum f_score */
-/*
-hom_class_t * hom_class_get_min_f(hom_classes_list_t *hom_classes_list) {
-    // Note that this returns NULL if we have an empty list
-    float min_f = INFINITY;
-    hom_class_t * min_class = NULL;
 
-    // List iteration logic
-    hom_class_t * it = hom_classes_list->head;    // as usual, we assume no NULL pointer is passed
-    while (it != NULL) {
-        float curr_f = it->f_score;
-        if (curr_f < min_f) {
-            min_f     = curr_f;
-            min_class = it;
-        }
-        it = it->next;
-    }
-    return min_class;
-}
-*/
-
-
-
-
-
-/* Unit testing area */
-
-void print_complex_list(hom_classes_list_t *list) {
-    hom_class_t *current = list->head;
-    while (current != NULL) {
-        printf("\t(%.2f + %.2fi),", creal(current->Lval), cimag(current->Lval));
-        current = current->next;
-    }
-    printf("\n");
-}
-
+/***** complex_list_to_string *******
+ * 
+ * This function essentially stringifies a homtopy class list struct, 
+ * allocating dynamically a buffer and returning a char * to it
+ * 
+ * NOTE: Caller responsibke for freeing returned char *
+ */
 char* complex_list_to_string(hom_classes_list_t *list) {
     hom_class_t *current = list->head;
 
@@ -155,7 +153,18 @@ char* complex_list_to_string(hom_classes_list_t *list) {
     return result;
 }
 
+/******* Unit testing area ********/
+
 #ifdef LVAL_UT
+
+void print_complex_list(hom_classes_list_t *list) {
+    hom_class_t *current = list->head;
+    while (current != NULL) {
+        printf("\t(%.2f + %.2fi),", creal(current->Lval), cimag(current->Lval));
+        current = current->next;
+    }
+    printf("\n");
+}
 
 void test_insertion() {
     hom_classes_list_t *list = hom_classes_list_new();

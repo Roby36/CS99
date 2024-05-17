@@ -6,7 +6,7 @@
 #define BO_LOG 1 
 #define BO_UT 1
 #define ASTCLCK 1 // Print statements measuring time for A-star execution
-#define AST_UT 1    // Flag for A_star unit test
+// #define AST_UT 1    // Flag for A_star unit test
 // #define ASTDBG 1 // Debug flag to activate print statements 
 // #define MH_DBG 1 // unit testing 
 // #define PARS_DBG 1
@@ -16,4 +16,5 @@
 #define PATH_WRITE_DBG 1
 #define LVALCLCK 1
 // #define LOOP_DBG 1
+#define AST_HC_DBG 1
 

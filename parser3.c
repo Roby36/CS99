@@ -10,6 +10,15 @@ static float ** extract_float_matrix(cJSON *json, char *key);
 static float extract_float(cJSON *json, char *key);
 static int extract_int(cJSON *json, char *key);
 
+
+/************** extract_float_matrix ****************
+ * 
+ * Uses cJSON library to extract a 2-dimensional float matrix, 
+ * taking as input cJSON struct and key under which the matrix is stored
+ * 
+ * NOTE: function returns malloc'd matrix, which the caller 
+ *       is then responsible to free by invoking free_float_matrix
+ */
 float ** extract_float_matrix(cJSON *json, char *key) {
     // Find the JSON array using the provided key
     cJSON *matrix_json = cJSON_GetObjectItemCaseSensitive(json, key);
@@ -81,6 +90,11 @@ float ** extract_float_matrix(cJSON *json, char *key) {
     return matrix;
 }
 
+/************** extract_float ****************
+ * 
+ * Uses cJSON library to extract a float value, 
+ * taking as input cJSON struct and key under which the float is stored
+ */
 float extract_float(cJSON *json, char *key) {
     // Check if the key exists and is the correct type
     cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key);
@@ -98,6 +112,11 @@ float extract_float(cJSON *json, char *key) {
     return (float)item->valuedouble;
 }
 
+/************** extract_int ****************
+ * 
+ * Uses cJSON library to extract an int value, 
+ * taking as input cJSON struct and key under which the int is stored
+ */
 int extract_int(cJSON *json, char *key) {
     // Attempt to retrieve the item associated with 'key'
     cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key);
@@ -116,6 +135,24 @@ int extract_int(cJSON *json, char *key) {
     return item->valueint;
 }
 
+/***************** load_json ******************
+ * 
+ * This is one of the two main functions of the module.
+ * 
+ * It stores the contents of the .json file to a string
+ * through the store_file subroutine, converts the string into a 
+ * cJSON struct, and finally wraps the static functions defined above, 
+ * extracting integers, floats, and float matrices,
+ * to fill up a struct Params containing all the relevant parameters
+ * stored in the original .json configuration file.  
+ * 
+ * NOTE: If more parameters are added to the .json configuration file in the future,
+ *       the only sections of the code requiring an update are this function's definition,
+ *       and the struct Params definition in utils.h
+ * 
+ *       The caller is responsible for later free'ing the Params struct returned, including the 
+ *       more laborious 2-dimensional matrix deallocations.
+ */
 Params * load_json(const char * file_name) {
 
     char * copy_str = store_file(file_name);
@@ -172,45 +209,15 @@ Params * load_json(const char * file_name) {
     return params;
 }
 
-
-#ifdef PARS_DBG // Execute as standalone program for debugging only
-
-int main(){   
-
-    FILE * dfp; // global debugging file pointer
-    const char * input_json = "./params.json";
-    const char * output_test = "./test.txt";
-    
-    if ((dfp = fopen(output_test, "w")) == NULL) {
-        fprintf(stderr, "Error: failed to open debugging file %s\n", output_test);
-        return 1;
-    }
-
-    // Testing:
-    Params * params = load_json(input_json);
-    // write test matrix to same .json file
-    write_json( 
-        input_json, "g_image_test", params->g_image,
-        calculate_steps(params->y_min, params->y_max, params->r),
-        calculate_steps(params->x_min, params->x_max, params->r)
-    );
-
-    // Clean up
-    free_float_matrix(
-        params->g_image,
-        calculate_steps(params->y_min, params->y_max, params->r),
-        calculate_steps(params->x_min, params->x_max, params->r)
-    ); 
-
-    fclose(dfp);
-
-    return 0;
-}
-
-#endif
-
-/* Function definitions */
-/* Dynamically allocating a file here */
+/************* store_file *************
+ * 
+ * This function takes as argument the filepath for the 
+ * .json file to parse, and saves it into a dynamically allocated 
+ * string, returning the resulting char * 
+ * 
+ * NOTE: The caller is critically responsible for later free'ing the returned char *,
+ *       especially given that this is potentially a large chunk of memory allocation
+ */
 char * store_file(const char * file_name) {
     FILE *fp;
     int capacity = 1024; // Initial capacity for the buffer
@@ -256,6 +263,11 @@ char * store_file(const char * file_name) {
     return final_buffer;
 }
 
+/******* print_matrix_to_file **********
+ * 
+ * This helper function takes a 2-dimensional matrix with its corresponding numbers of rows and columns,
+ * and writes it to the desired file pointer under the desired key 
+*/
 void print_matrix_to_file(FILE *fp, const char* key, float** matrix, int rows, int cols) {
     fprintf(fp, "\"%s\": [\n", key);
     for (int i = 0; i < rows; i++) {
@@ -276,6 +288,10 @@ void print_matrix_to_file(FILE *fp, const char* key, float** matrix, int rows, i
     fprintf(fp, "]");
 }
 
+/********** print_matrix_row *************
+ * 
+ * Prints single row of matrix for debugging purposes.
+ */
 void print_matrix_row(float ** M, int curr_col, int curr_row) {
     printf("Row %d of matrix:\n\t[ ", curr_row);
         for (int c = 0; c < curr_col; c++) {
@@ -284,6 +300,12 @@ void print_matrix_row(float ** M, int curr_col, int curr_row) {
         printf("]\n");
 }
 
+/************** write_json ***************
+ * 
+ * This function takes a 2-dimensional matrix with its corresponding numbers of rows and columns,
+ * and writes it to the desired file_path pointer under the desired key,
+ * by calling the static / private subroutine print_matrix_to_file
+*/
 void write_json(const char* file_path, const char * key, float ** matrix, int rows, int cols) {
     FILE *fp = fopen(file_path, "r+");
     if (fp == NULL) {
@@ -314,6 +336,10 @@ void write_json(const char* file_path, const char * key, float ** matrix, int ro
     fclose(fp);
 }
 
+/********** free_float_matrix ***********
+ * 
+ * Frees 2-dimensional matrix of given rows and columns.
+*/
 void free_float_matrix(float **M, int rows, int columns) {
     if (M != NULL) {
         for (int i = 0; i < rows; i++) {
@@ -322,4 +348,43 @@ void free_float_matrix(float **M, int rows, int columns) {
         free(M);  // Finally, free the pointer to the row pointers
     }
 }
+
+/***************** Unit testing area *******************/
+
+#ifdef PARS_DBG // Execute as standalone program for debugging only
+
+int main(){   
+
+    FILE * dfp; // global debugging file pointer
+    const char * input_json = "./params.json";
+    const char * output_test = "./test.txt";
+    
+    if ((dfp = fopen(output_test, "w")) == NULL) {
+        fprintf(stderr, "Error: failed to open debugging file %s\n", output_test);
+        return 1;
+    }
+
+    // Testing:
+    Params * params = load_json(input_json);
+    // write test matrix to same .json file
+    write_json( 
+        input_json, "g_image_test", params->g_image,
+        calculate_steps(params->y_min, params->y_max, params->r),
+        calculate_steps(params->x_min, params->x_max, params->r)
+    );
+
+    // Clean up
+    free_float_matrix(
+        params->g_image,
+        calculate_steps(params->y_min, params->y_max, params->r),
+        calculate_steps(params->x_min, params->x_max, params->r)
+    ); 
+
+    fclose(dfp);
+
+    return 0;
+}
+
+#endif
+
 
