@@ -1,59 +1,46 @@
 
 #include "obstacle_marker.h"
 
-/* This module develops the framework necessary to apply complex analysis to work with homotopy constraints */
+/*** This module encapsulates the essential complex analysis framework to work with homotopy classes ***/
 
-/* Define struct F containing parameters for obstacle marker function */
+/*** struct containing parameters for obstacle marker function ***/
 struct F {
-    /* These are the input parameters from the .json */
+
+    /* Input parameters extracted from the .json configuration file */
     Complex BL, TR;
     int N, a, b;
     Complex * obstacle_markers;
 
-    /* Keep a pointer of the params from the json, and a value for the float tolerance */
+    /* Keep a pointer of the main params struct, and a value for the float tolerance for easier access */
     Params * params;
     float float_tol;
 
-    /* These are additional computed parameters for the homotopies */
-    Complex * A;            // array of Complex-valued residues of size N
-    Complex **** Lvals;     // 4-D array storing the L values between any two points on the grid
+    /* These are additional precomputed parameters for the homotopies */
+    Complex * A;        // array of Complex-valued residues of size N
+    Complex **** Lvals; // 4-D array storing the L values between any two points on the grid
 };
 
-/* We define an appropriate obstacle marker dividend analytic component f_0 */
+/*** Analytic dividend component of obstacle marker function ***/
 #define F_0(z, BL, TR, a, b) (cpow((z) - (BL), (a)) * cpow((z) - (TR), (b)))
 
-/* Function prototypes (static) */
-static void extract_obstacle_marker_func_params(F_t * F);
-static void compute_residues(F_t * F);
-static Complex L(Complex z1, Complex z2, F_t * F); 
-static void compute_Lvals(F_t * F);
-static void free_Lvals(F_t * F);
 
-/* Constructor for the F struct */
-F_t * initialize_obstacle_marker_func_params(Params * params, float float_tol) {
-    // Main memory allocation for the struct here
-    F_t * F = (F_t *) malloc(sizeof(F_t));
-    F->params = params;
-    F->float_tol = float_tol;
-    // First extract the input parameters from the file using the parser
-    extract_obstacle_marker_func_params(F);
-    // Next compute the residues stored within the struct
-    compute_residues(F);
-    // Finally allocate and calculate the Lvalue matrix
-    compute_Lvals(F);
+/********** static / private helper functions *************/
 
-    return F;
-}
-
-/* Destructor for the F struct */
-void delete_obstacle_marker_func_params(F_t * F) {
-    free_Lvals(F);
-    free(F->A);     
-    free(F->obstacle_markers);
-    free(F);
-}
-
-/* This function extracts the relevant paramters for this module, and return F struct */
+/******** extract_obstacle_marker_func_params *********
+ * 
+ * This is a private helper for the initialization sequence of the F struct,
+ * which initializes the input parameters from the .json configuration file
+ * 
+ * Inputs:
+ *  - An already-malloc'd F struct
+ * 
+ * Outputs:
+ *  - Initializes N, BL, TR, a, b, obstacle_markers elements for the input struct
+ * 
+ * NOTE: The F struct must already be malloc'd, but potential mishandling is prevented 
+ *       by keeping this as a static sub-routine, called within the
+ *       full public constructor initialize_obstacle_marker_func_params later 
+ */
 static void extract_obstacle_marker_func_params(F_t * F) {
 
     F->N = F->params->num_obstacles;
@@ -71,6 +58,21 @@ static void extract_obstacle_marker_func_params(F_t * F) {
     }
 }
 
+/******** compute_residues ********
+ * 
+ * This is another private helper for the initialization sequence of the F struct,
+ * which initializes the array A of the residues corresponding to each obstacle in the enviornment 
+ * 
+ * Inputs:
+ *  - An already-malloc'd F struct, on which extract_obstacle_marker_func_params(F) was executed
+ * 
+ * Outputs:
+ *  - Initializes and fills array A of the residues
+ * 
+ * NOTE: Like in the previous method, there could be clearly potential mishandling 
+ *       if the method was not a static inline wrapped inside the
+ *       full public constructor initialize_obstacle_marker_func_params 
+*/
 static void compute_residues(F_t * F) {
 
     Complex prod;
@@ -95,7 +97,26 @@ static void compute_residues(F_t * F) {
     }
 }
 
-/* Calculating the A_l expression, given array of obstacle markers */
+
+/*********** L **************
+ * 
+ * This method computes analytically the L-value, or Riemann sum path integral,
+ * of the obstacle marker function between two arbitrary points on the complex plane
+ * 
+ * Inputs:
+ *  - malloc'd obstacle marker function parameters struct F, on which both 
+ *      extract_obstacle_marker_func_params(F)
+ *      compute_residues(F)
+ *    have been called to initialize the necessary inner elements
+ * 
+ *  - Complex-valued Initial point and terminal point z1, z2 respectively
+ * 
+ * Outputs:
+ *  - complex-valued L-value, corresponding to the obstacle marker function 
+ *    Riemann sum path integral contribution between the points z1, z2
+ * 
+ * NOTE: Highly unsafe unless used as within the wrapper initialize_obstacle_marker_func_params
+ */
 static Complex L(Complex z1, Complex z2, F_t * F) {
 
     Complex zeta_l;
@@ -121,17 +142,27 @@ static Complex L(Complex z1, Complex z2, F_t * F) {
     return l_val;
 }
 
-/** Lvals:
- * The L-value between the neighboring edges ((xs, ys), (xn, yn)) is stored in the entry
- * (F->Lvals) [ys][xs][(yn - ys) + 1][(xn - xs) + 1] 
- * of the (F->Lvals) 4-dimensional array
+
+/********** compute_Lvals ************
+ * 
+ * This function computes all the possible L-values for the input grid 
+ * at a preprocessing stage, storing them in a 4-dimensional array F->Lvals where
+ *     The L-value between the neighboring grid edges ((xs, ys), (xn, yn)) is stored in the entry
+ *     (F->Lvals) [ys][xs][(yn - ys) + 1][(xn - xs) + 1] 
+ * 
+ * Because the A* algorithm typically leads to the same transitions between states being performed multiple times,
+ * precomputing the L-values for each one of these transitions saves several redundant computations, 
+ * taking only a relatively low fixed time at the start of program execution 
+ * (for instance, roughly 2.5 seconds for a large 1-million state grid), thereby proving to be an efficient solution. 
+ * 
+ * The function, taking as its only input the F struct, dynamically allocates the large matrix whilst simultaneously 
+ * calculating the L-values, and fills it up within the F->Lvals attribute. 
+ * It is well-encapsulated and inaccessible by outside users of the module, 
+ * as it is wrapped as the last subroutine in initialize_obstacle_marker_func_params.
+ * 
+ * NOTE: The caller is responsible for later calling free_Lvals, which carefully deallocates F->Lvals 
  */
 static void compute_Lvals(F_t * F) {
-
-    /** A long nested allocation of the matrix (F->Lvals), 
-     * converting each discrete grid coordinate to its corresponding complex value,
-     * and then using the L function to calculate the corresponding Lvalue for the edge
-    */
 
     #ifdef LVALCLCK
     struct timeval start, end;
@@ -193,19 +224,11 @@ static void compute_Lvals(F_t * F) {
     #endif
 }
 
-/* This is the getter that returns the L-value for the edge ((x_c, y_c), (x_n, y_n)) */
-Complex get_Lval(F_t * F, int x_c, int y_c, int x_n, int y_n) {
 
-    // Redundant accessibility check 
-    if (!is_accessible(F->params, x_n, y_n, F->float_tol)) {
-        DEBUG_ERROR("(x_n, y_n) is not accessible");
-        return CMPLX(0.0, 0.0);
-    }
-
-    // Return Lvalue based on matrix storing conventions
-    return ((F->Lvals) [y_c][x_c][(y_n - y_c) + 1][(x_n - x_c) + 1]);
-}
-
+/******** free_Lvals **********
+ * 
+ * Corresponding free'ing routine for compute_Lvals 
+ */
 static void free_Lvals(F_t * F) {
     
     for (int ys = 0; ys < F->params->ys_steps; ys++) {
@@ -221,8 +244,109 @@ static void free_Lvals(F_t * F) {
 }
 
 
-// Assuming float **test_path is organized such that test_path[i][0] is the real part and test_path[i][1] is the imaginary part of the ith point.
-// The 'num_points' is the number of points in the path.
+/**************** Public functions *******************/
+
+/*********** initialize_obstacle_marker_func_params ****************
+ * 
+ * This function essentially acts as the public constructor for the F struct, 
+ * wrapping the three private / static methods:
+ * 
+ *  1) extract_obstacle_marker_func_params
+ *  2) compute_residues
+ *  3) compute_Lvals
+ * 
+ * Inputs:
+ *  - A fully initialized and filled params struct, containing the configuration parameters for the environment
+ *  - A float tolerance value which will be necessary for floating point numbers comparison involving F
+ * 
+ * Outputs:
+ *  - The resulting opaque struct pointer F, containing obstacle marker parameters,
+ *    as well as residues and L-values between any two neighboring states on the grid 
+ * 
+ * NOTE: Caller responsible for providing a fully initialized and filled params struct.
+ *       This should be constructed by first using the parser module to extract data 
+ *       from the .json configuration file:
+ *              params = load_json(input_json_path);
+ *          
+ *       Caller responsible for later calling the public destructor delete_obstacle_marker_func_params
+ *       which wraps and handles all the tedious deallocations for the struct F
+ */
+F_t * initialize_obstacle_marker_func_params(Params * params, float float_tol) {
+    // Main memory allocation for the struct here
+    F_t * F = (F_t *) malloc(sizeof(F_t));
+    F->params = params;
+    F->float_tol = float_tol;
+    // First extract the input parameters from the file using the parser
+    extract_obstacle_marker_func_params(F);
+    // Next compute the residues stored within the struct
+    compute_residues(F);
+    // Finally allocate and calculate the Lvalue matrix
+    compute_Lvals(F);
+
+    return F;
+}
+
+/***** delete_obstacle_marker_func_params ********
+ * 
+ * This function essentially acts as the public destructor for the F struct,
+ * carefully free'ing all the memory allocated by initialize_obstacle_marker_func_params
+ */
+void delete_obstacle_marker_func_params(F_t * F) {
+    free_Lvals(F);
+    free(F->A);     
+    free(F->obstacle_markers);
+    free(F);
+}
+
+
+/*********** get_Lval **************
+ * 
+ * This is the main public function exposed by the module,
+ * allowing the caller to seamlessly extract the L-value between two arbitary
+ * gridpoints with minimal overhead.
+ * 
+ * Inputs:
+ *  - opaque (to the caller) obstacle marker struct F
+ *  - initial and terminal neighboring points (x_c, y_c), (x_n, y_n) for an edge in the search graph
+ * 
+ * Outputs:
+ *  - L-value between the gridpoints if these are valid
+ *  - 0 + 0i and error if the neighbor is not accessible or out of range
+ *  
+ */
+Complex get_Lval(F_t * F, int x_c, int y_c, int x_n, int y_n) {
+
+    // Redundant accessibility check 
+    if (!is_accessible(F->params, x_n, y_n, F->float_tol)) {
+        DEBUG_ERROR("(x_n, y_n) is not accessible");
+        return CMPLX(0.0, 0.0);
+    }
+
+    // Check the bouds for the matrix 
+    if (abs(y_n - y_c) > 1 || abs(x_n - x_c) > 1) {
+        DEBUG_ERROR("neighbor out of range");
+        return CMPLX(0.0, 0.0);
+    }
+
+    // Return Lvalue based on matrix storing conventions
+    return ((F->Lvals) [y_c][x_c][(y_n - y_c) + 1][(x_n - x_c) + 1]);
+}
+
+/*********** calculate_path_integral **************
+ *  
+ * Inputs:
+ *  - 2-dimensional matrix float ** test_path containing the float cooordinates in the map environment 
+ *    for the path
+ *  - number of points num_points contained in the test_path matrix
+ *  - obstacle marker function struct F
+ * 
+ * Output:
+ *  - Complex-valued path integral along the path 
+ * 
+ * NOTE: Assuming float **test_path is organized such that 
+ *       test_path[i][0] is the real part and test_path[i][1] 
+ *       is the imaginary part of the ith point in the path
+ */
 Complex calculate_path_integral(float ** test_path, int num_points, F_t * F) {
 
     Complex sum = CMPLX(0.0, 0.0);
@@ -242,10 +366,16 @@ Complex calculate_path_integral(float ** test_path, int num_points, F_t * F) {
     return sum;
 }
 
+/* Simple getters */
 Complex * get_residues(F_t * F) {
     return (F->A);
 }
 
+Complex * get_obstacle_markers(F_t * F) {
+    return (F->obstacle_markers);
+}
+
+/*********** Unit testing area **************/
 
 #ifdef HC_UT
 

@@ -12,7 +12,8 @@
 #include <ctype.h>  // For isspace()
 
 typedef double complex Complex;
-/* Macros */
+
+/******** Macros ************/
 #define SQRT2 1.4142135623730951
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -32,7 +33,10 @@ typedef double complex Complex;
     elapsed = seconds + microseconds * 1e-6; \
 } while(0)
 
-/* Keep all parameters extracted from .json file in clean, compact struct, which will be passed to A* */
+/*********** Params *************
+ * Main struct holding all parameters extracted from .json file,
+ * which will be passed around all the modules to share the state of the environment 
+*/
 typedef struct {
 
     float r;
@@ -64,6 +68,8 @@ typedef struct {
     int steps_path2;
 
 } Params;
+
+/********* inline utility functions **********/
 
 static inline int calculate_steps(float min, float max, float step_size) {
 

@@ -14,7 +14,6 @@
 #include "commonmacros.h"
 #include "utils.h"
 
-// Define the type for complex numbers
 typedef double complex Complex;
 
 /* Opaque type for obstacle marker function */
@@ -24,12 +23,13 @@ typedef struct F F_t;
 F_t * initialize_obstacle_marker_func_params(Params * params, float float_tol);
 void delete_obstacle_marker_func_params(F_t * F);
 
-/* Main function to get an arbitrary Lvalue corresponding to some arbitarry edge ((x_c, y_c), (x_n, y_n)) */
+/*** Main function to get an arbitrary Lvalue corresponding to some arbitarry edge ((x_c, y_c), (x_n, y_n)) ***/
 Complex get_Lval(F_t * F, int x_c, int y_c, int x_n, int y_n); 
 
 /* function to calculate integral along some arbitrary path */
 Complex calculate_path_integral(float ** test_path, int num_points, F_t * F);
 
-/* Getters */
+/* Simple getters */
 Complex * get_residues(F_t * F);
+Complex * get_obstacle_markers(F_t * F);
 

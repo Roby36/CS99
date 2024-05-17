@@ -11,16 +11,7 @@
 #include "hom_classes.h"
 #include "commonmacros.h"
 
-/* Interface for the minimum heap open set / priority queue used by A* */
-
-/** NOTE: 
- * Because we want to use this data structure for both the "standard" A* algorithm where we enqueue vertices,
- * and the extended version of the algorithm where we actually enqueue homotopy class objects, 
- * we are going to implement "type punning" to allow the data structure to hold a generic type.
- * This will also force further clarity and abstraction in explicitly defining which elements 
- * from vertices / homotopy classes the data structure actually needs to read and write to 
-*/
-
+/* Opaque types */
 typedef struct open_set open_set_t;  
 typedef struct minheap_node minheap_node;
 
@@ -30,7 +21,7 @@ float hom_class_get_f_score (void * hom_class);
 void vertex_set_minheap_node (void * vertex, minheap_node * minheap_node);
 void hom_class_set_minheap_node (void * hom_class, minheap_node * minheap_node);
 
-/* Functions for open set / priority queue */
+/* Public functions for the minimum heap implementation of the priority queue, documented in min_heap.c */
 open_set_t *open_set_new(
     float (* get_f_score) (void *),
     void  (* set_minheap_node) (void *, minheap_node *));
@@ -42,6 +33,3 @@ void free_open_set(open_set_t *set);
 
 /* Simple getters */
 int open_set_size(open_set_t * set);
-
-
-

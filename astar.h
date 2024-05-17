@@ -22,24 +22,32 @@ float edge_cost(
     Config * config
 );
 
-/* Standar heuristic function */
+/* Standard heuristic function */
 float heuristic(
     int x_n, int y_n, int x_g, int y_g,
     Params * params,
     Config * config
 );
 
+/* Zero heuristic function for homotopy graph searches */
+float zero_heuristic(
+    int x_n, int y_n, int x_g, int y_g,
+    Params * params,
+    Config * config
+);
+
 /**************** A* main algorithm ****************/
-void A_star(
+void A_star_homotopies(
     Params * params,
     Config * config,
     float (*h) (int, int, int, int, Params *, Config * ),
     float (*c) (int, int, int, int, Params *, Config * ),
     float float_tol,
     /* Homotopy parameters */
-    // Lval_list_t * B,    // blocked homotopy classes for the search
     double abs_tol,     // decimal tolerance for resolving between homotopy classes
-    F_t * F             // obstacle marker
+    F_t * F,            // obstacle marker function parameters
+    hom_classes_list_t ** target_hom_classes_ptr, // pointer to the target homotopy classes list, will be iteratively updated
+    const int max_hom_classes   // total number of homotopic classes within target_hom_classes_ptr to fill 
 );
 
 /*** Backtracking ***/
