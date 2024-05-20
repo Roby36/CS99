@@ -8,7 +8,6 @@ import path_output_graph as pog
 import elliptical_surface_graph as esg
 import matrix_comparison_tester as mct
 
-
 entries_to_delete = [esg.g_image_key, mct.g_image_test_key, ht.test_path_key1, ht.test_path_key2, ht.steps_path1, ht.steps_path2]
 
 # Takes as argument the filepath for the json file storing the parameters

@@ -805,7 +805,7 @@ static bool check_loop(
 
    /** LOOPTEST: Clockwise vs anticlockwise (too inefficient)
      * Also this analysis doesn't work since any loop could always
-     * come in clockwise or anticlockwise forms 
+     * come in clockwise or anticlockwise forms
     */
     bool loop = false;
     Complex * A = get_residues(F);

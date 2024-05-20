@@ -28,10 +28,10 @@ def save_to_json(g_image, filename):
         file.truncate()  # Truncate file to the new size
 
 # Given the input ranges for x,y, convert them to processeable numpy 2-d arrays
-def compute_meshgrids(params):
+def compute_meshgrids(params, coarsing_factor=1):
     # Coomputing linear 1-D arrays for x,y depending on the given step and range values
-    x_steps = (int)((params['x_max'] - params['x_min']) / params['r'])
-    y_steps = (int)((params['y_max'] - params['y_min']) / params['r'])
+    x_steps = (int)((params['x_max'] - params['x_min']) / (coarsing_factor * params['r']))
+    y_steps = (int)((params['y_max'] - params['y_min']) / (coarsing_factor * params['r']))
     x = np.linspace(params['x_min'], params['x_max'], x_steps)
     y = np.linspace(params['y_min'], params['y_max'], y_steps)
 
