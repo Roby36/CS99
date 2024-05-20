@@ -91,6 +91,7 @@ static inline bool is_accessible(Params * params, int x, int y, float float_tol)
     return (
         x >= 0 && y >= 0 &&
         x < params->xs_steps && y < params->ys_steps &&
+        params->g_image != NULL &&
         params->g_image[(params->s_div_r) * y][(params->s_div_r) * x] >= float_tol
     );
 

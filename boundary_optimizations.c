@@ -46,6 +46,7 @@ float * path_length_getter(Backtrack_Path * bt) {
  *  - The maximum admissible percentage for the fixed path metric, beyond the benchmark value 
  *  - The starting value for the variable configuration parameter
  *  - The multiplier for the variable configuration parameter between iterations, or runs of A*
+ *  - A scale factor, changing the magnitudes of the fixed and variable parameters whilst maintaining their relative ratios
  *  - The maximum number of iterations, or runs of A* 
  * 
  * Outputs:
@@ -74,7 +75,8 @@ void boundary_optimization(
     float * (* fix_path_met)(Backtrack_Path *),   
     const float bound,      
     const float var_start,  
-    const float var_mult,   
+    const float var_mult,
+    const float scale_fact,   
     const int MAX_IT        
 ) {
     // previous and current values of variable path metric (e.g. uncertainty), for each homotopy class
@@ -90,7 +92,7 @@ void boundary_optimization(
 
     /* First we set the fixed path metric benchmark by running A* with a pure cost function */
     /** IMPORTANT: We faithfully assume that A* does not modify the config struct */
-    *(fix_config) = 1.0f;   // e.g. b = 1, a = 0 to initialize fixed and variable configuration parameters
+    *(fix_config) = (1.0f / scale_fact);   // e.g. b = 1, a = 0 to initialize fixed and variable configuration parameters
     *(var_config) = 0.0f;
 
     // Call A* with intial config to set the entries in curr_hom_classes_ptr to the benchmarks for each homotopy class
@@ -122,12 +124,12 @@ void boundary_optimization(
     }
 
     /* Now we enter the main loop where we iteratively increase the variable configuration parameter's weight metric */
-    *(var_config) = var_start;
+    *(var_config) = (var_start / scale_fact);
     bool homotopy_classes_updated = true; // flag signaling whether any homotopic classes have been updated, thus whether further iterations are still needed
     while (homotopy_classes_updated) {
 
         /* Check that we haven't exceeded the maxiumum allowed iterations */
-        if (curr_it == MAX_IT) {
+        if (curr_it >= MAX_IT) {
             #ifdef BO_LOG
             printf("\nBoundary optimization terminated as max_it = %d was reached\n", MAX_IT);
             #endif
@@ -268,20 +270,49 @@ void boundary_optimization(
 
 #ifdef BO_UT
 
-int main() {
+int main(int argc, char *argv[]) {
 
     // Hard-coded constants
     const char * input_json_path = "./params.json";
     const float float_tol = 0.05;
     const double abs_tol = 1.0;
-    const float bound = 0.3;
     const float var_start = 0.01;
-    const float var_mult = 4.0f;
-    const int MAX_IT = 100;
+    const float scale_fact = 1.0f;
+  
+    // Inputs initialized from the command line
+    float bound = 0.0f;
+    float var_mult = 0.0f;
+    int MAX_IT = 0;
+    char * endptr;  // Pointer to check conversion status
 
     // Local variables for A*
     Params * params;
     Config * config;
+
+    // Parsing of command-line arguments procedure
+    if (argc != 4) { 
+        fprintf(stderr, "Usage: %s <bound> <var_mult> <MAX_IT> \n", argv[0]);
+        return 1;  // Return an error code
+    }
+
+    // Convert first float
+    bound = strtod(argv[1], &endptr);
+    if (*endptr != '\0') {  // Check if conversion consumed the whole input
+        fprintf(stderr, "Invalid float for parameter bound: %s\n", argv[1]);
+        return 1;
+    }
+    // Convert second float
+    var_mult = strtod(argv[2], &endptr);
+    if (*endptr != '\0') {  // Check if conversion consumed the whole input
+        fprintf(stderr, "Invalid float for parameter var_mult: %s\n", argv[2]);
+        return 1;
+    }
+
+    // Extract MAX_IT
+    if (sscanf(argv[3], "%d", &MAX_IT) != 1) {
+        fprintf(stderr, "Invalid integer for parameter MAX_IT: %s\n", argv[3]);
+        return 1;
+    }
 
     params = load_json(input_json_path);
     if (params == NULL) {
@@ -295,11 +326,20 @@ int main() {
     const int max_hom_classes = params->num_obstacles + (params->num_obstacles / 2); // set this to 50% more than the number of obstacles
     hom_classes_list_t * target_hom_classes = NULL; // list of homotopic classes, initialized to NULL
 
+    // Log the parsed parameters
+    printf(
+        "Running boundary_optimization with inputs from command-line " 
+        "bound = %f, var_mult = %f, MAX_IT = %d " 
+        "and scale factor %f\n", 
+        bound, var_mult, MAX_IT, scale_fact
+    ); 
+
+/* Input initialization complete: now invoking the main function */
     boundary_optimization(
-/* A* parameters */
+    /* A* parameters */
     params, config, zero_heuristic, edge_cost, float_tol, 
     abs_tol, F, &target_hom_classes, max_hom_classes, 
-/* boundary-optimization-specific parameters */
+    /* boundary-optimization-specific parameters */
     &config->a,     // variable configuration parameter to optimize (e.g. a for uncertainty)
     &config->b,     // fixed configuration parameter to control (e.g. b for path length)
     g_image_getter,
@@ -307,6 +347,7 @@ int main() {
     bound,      // The maximum tolerance allowed beyond the optimized fixed path metric
     var_start,  // starting value for variable configuration parameter
     var_mult,   // multiplicator for variable configuration parameter
+    scale_fact,
     MAX_IT        // maximum iterations (and thus A* runs permitted)
     );
 
