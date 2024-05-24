@@ -1,6 +1,6 @@
 
 #include "commonmacros.h"
-#include "astar.h"
+#include "astar_homotopies.h"
 #include "parser.h"
 
 /* This module runs several times A* with different a,b configurations to optimize either for uncertainty or path length */
@@ -58,16 +58,7 @@ float * path_length_getter(Backtrack_Path * bt) {
  */
 void boundary_optimization(
 /* A* parameters */
-    Params * params,
-    Config * config,
-    float (*h) (int, int, int, int, Params *, Config * ),
-    float (*c) (int, int, int, int, Params *, Config * ),
-    float float_tol,
-    /* Homotopy parameters */
-    double abs_tol,     
-    F_t * F,            
-    hom_classes_list_t ** curr_hom_classes_ptr, 
-    const int max_hom_classes,
+    struct A_star_homotopies_args * astar_args,
 /* boundary-optimization-specific parameters */
     float * var_config,     
     float * fix_config,     
@@ -80,12 +71,12 @@ void boundary_optimization(
     const int MAX_IT        
 ) {
     // previous and current values of variable path metric (e.g. uncertainty), for each homotopy class
-    Backtrack_Path * var_prev [max_hom_classes]; 
-    Backtrack_Path * var_curr [max_hom_classes];   
+    Backtrack_Path * var_prev [astar_args->max_hom_classes]; 
+    Backtrack_Path * var_curr [astar_args->max_hom_classes];   
 
     // benchmark for the fixed path metric (e.g. length), and the varying current value, for each homotopy class
-    Backtrack_Path * fix_0    [max_hom_classes];
-    Backtrack_Path * fix_curr [max_hom_classes];  
+    Backtrack_Path * fix_0    [astar_args->max_hom_classes];
+    Backtrack_Path * fix_curr [astar_args->max_hom_classes];  
 
     // current main loop iteration
     int curr_it = 0;            
@@ -95,11 +86,11 @@ void boundary_optimization(
     *(fix_config) = (1.0f / scale_fact);   // e.g. b = 1, a = 0 to initialize fixed and variable configuration parameters
     *(var_config) = 0.0f;
 
-    // Call A* with intial config to set the entries in curr_hom_classes_ptr to the benchmarks for each homotopy class
-    A_star_homotopies(params, config, h, c, float_tol, abs_tol, F, curr_hom_classes_ptr, max_hom_classes); 
+    // Call A* with intial config to set the entries in target_hom_classes_ptr to the benchmarks for each homotopy class
+    A_star_homotopies(astar_args); 
 
     // Now allocate all the pointers to paths within the arrays, holding tuple values corresponding to each sequential homotopy class in the benchmark list
-    hom_class_t * bench_it = (*curr_hom_classes_ptr)->head;
+    hom_class_t * bench_it = (*(astar_args->target_hom_classes_ptr))->head;
     int curr_index = 0;
     while (bench_it != NULL) {
 
@@ -126,25 +117,18 @@ void boundary_optimization(
     /* Now we enter the main loop where we iteratively increase the variable configuration parameter's weight metric */
     *(var_config) = (var_start / scale_fact);
     bool homotopy_classes_updated = true; // flag signaling whether any homotopic classes have been updated, thus whether further iterations are still needed
-    while (homotopy_classes_updated) {
-
-        /* Check that we haven't exceeded the maxiumum allowed iterations */
-        if (curr_it >= MAX_IT) {
-            #ifdef BO_LOG
-            printf("\nBoundary optimization terminated as max_it = %d was reached\n", MAX_IT);
-            #endif
-            break;
-        }
+    
+    while (true) {
 
         /** NOTE: A_star_homotopies keeps intact the relative location of each homotopy class within the benchmark_hom_classes list,
          * and thus updates its corresponding values in place. Hence we can expect each homotopy class to be located constantly at the same array index. 
          * While the Back_Track oject is destroyed at each iteration, A_star_homotopies writes to params.json each path into the goal vertex it discovers.
          * For more information on the implications of this call see A_star_goal_check in astar.c 
         */        
-        A_star_homotopies(params, config, h, c, float_tol, abs_tol, F, curr_hom_classes_ptr, max_hom_classes);
+        A_star_homotopies(astar_args);
         
         // Update each homotopy class within the arrays with the update path metrics from A*
-        hom_class_t * hom_class_it = (*curr_hom_classes_ptr)->head;
+        hom_class_t * hom_class_it = (*(astar_args->target_hom_classes_ptr))->head;
         curr_index = 0;
         homotopy_classes_updated = false; 
 
@@ -213,10 +197,22 @@ void boundary_optimization(
             hom_class_it = hom_class_it->next;
         }
 
-        /* End-of-loop routine */
-    
-        curr_it++;
-        *(var_config) *= var_mult;  // scale up the variable configuration parameter by the desired multiple
+        /* End-of-loop routine: check two loop-break conditions */
+        if (!homotopy_classes_updated) {
+            #ifdef BO_LOG
+            printf("\nBoundary optimization terminated as no homotopy clases have been updated at iteration %d\n", curr_it);
+            #endif
+            break;
+        }
+        if (++curr_it >= MAX_IT) {
+            #ifdef BO_LOG
+            printf("\nBoundary optimization terminated as max_it = %d was reached\n", MAX_IT);
+            #endif
+            break;
+        }
+
+        // Guarantees that A* is performed for the updated value 
+        *(var_config) *= var_mult;  
     }
 
     /* Here the main routine terminated, and we optionally log the output */
@@ -230,7 +226,7 @@ void boundary_optimization(
     #endif
 
     // Now iterate throughout all the homotopy classes and indices
-    hom_class_t * hom_class_it = (*curr_hom_classes_ptr)->head;
+    hom_class_t * hom_class_it = (*(astar_args->target_hom_classes_ptr))->head;
     curr_index = 0;
     while (hom_class_it != NULL) {
 
@@ -272,47 +268,40 @@ void boundary_optimization(
 
 int main(int argc, char *argv[]) {
 
-    // Hard-coded constants
-    const char * input_json_path = "./params.json";
+    /* Hard-coded constants */
     const float float_tol = 0.05;
     const double abs_tol = 1.0;
     const float var_start = 0.01;
     const float scale_fact = 1.0f;
   
-    // Inputs initialized from the command line
+    /* Inputs initialized from the command line */
+    char * input_json_path;
     float bound = 0.0f;
     float var_mult = 0.0f;
     int MAX_IT = 0;
-    char * endptr;  // Pointer to check conversion status
+    int max_expandible_states_mult = 0;
 
-    // Local variables for A*
+    /* Local variables for A* */
     Params * params;
     Config * config;
 
-    // Parsing of command-line arguments procedure
-    if (argc != 4) { 
-        fprintf(stderr, "Usage: %s <bound> <var_mult> <MAX_IT> \n", argv[0]);
-        return 1;  // Return an error code
+    // Parsing command-line arguments
+    if (argc != 6) { 
+        fprintf(stderr, "Usage: %s <input_json_path> <bound> <var_mult> <MAX_IT> <max_expandible_states_mult> \n", argv[0]);
+        return 1;  
     }
 
-    // Convert first float
-    bound = strtod(argv[1], &endptr);
-    if (*endptr != '\0') {  // Check if conversion consumed the whole input
-        fprintf(stderr, "Invalid float for parameter bound: %s\n", argv[1]);
+    input_json_path = (char *) malloc(strlen(argv[1]) + 1);
+    if (input_json_path == NULL) {
+        fprintf(stderr, "Memory for <input_json_path> string allocation failed\n");
         return 1;
     }
-    // Convert second float
-    var_mult = strtod(argv[2], &endptr);
-    if (*endptr != '\0') {  // Check if conversion consumed the whole input
-        fprintf(stderr, "Invalid float for parameter var_mult: %s\n", argv[2]);
-        return 1;
-    }
+    strcpy(input_json_path, argv[1]);
 
-    // Extract MAX_IT
-    if (sscanf(argv[3], "%d", &MAX_IT) != 1) {
-        fprintf(stderr, "Invalid integer for parameter MAX_IT: %s\n", argv[3]);
-        return 1;
-    }
+    PARSE_FLOAT(argv[2], bound, 2);
+    PARSE_FLOAT(argv[3], var_mult, 3);
+    PARSE_INT(argv[4], MAX_IT, 4);
+    PARSE_INT(argv[5], max_expandible_states_mult, 5);
 
     params = load_json(input_json_path);
     if (params == NULL) {
@@ -320,25 +309,37 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    // Allocate memory for the path struct & configuration
     config = malloc(sizeof(Config));
     F_t * F = initialize_obstacle_marker_func_params(params, float_tol);
-    const int max_hom_classes = params->num_obstacles + (params->num_obstacles / 2); // set this to 50% more than the number of obstacles
-    hom_classes_list_t * target_hom_classes = NULL; // list of homotopic classes, initialized to NULL
+    const int max_hom_classes = params->num_obstacles + (params->num_obstacles / 2); // 50% more than the number of obstacles
+    hom_classes_list_t * target_hom_classes = NULL; 
 
     // Log the parsed parameters
     printf(
         "Running boundary_optimization with inputs from command-line " 
-        "bound = %f, var_mult = %f, MAX_IT = %d " 
-        "and scale factor %f\n", 
-        bound, var_mult, MAX_IT, scale_fact
+        "bound = %f, var_mult = %f, MAX_IT = %d, max_expandible_states_mult = %d\n", 
+        bound, var_mult, MAX_IT, max_expandible_states_mult
     ); 
+
+    // Wrap up all the inputs into the struct
+
+    struct A_star_homotopies_args  * astar_args = malloc(sizeof(struct A_star_homotopies_args));
+
+    astar_args->params = params;
+    astar_args->config = config;
+    astar_args->h = zero_heuristic;
+    astar_args->c = edge_cost;
+    astar_args->float_tol = float_tol;
+    astar_args->abs_tol = abs_tol;
+    astar_args->F = F;
+    astar_args->target_hom_classes_ptr = &target_hom_classes;
+    astar_args->max_hom_classes = max_hom_classes;
+    astar_args->max_expandible_states_mult = max_expandible_states_mult;
 
 /* Input initialization complete: now invoking the main function */
     boundary_optimization(
     /* A* parameters */
-    params, config, zero_heuristic, edge_cost, float_tol, 
-    abs_tol, F, &target_hom_classes, max_hom_classes, 
+    astar_args,
     /* boundary-optimization-specific parameters */
     &config->a,     // variable configuration parameter to optimize (e.g. a for uncertainty)
     &config->b,     // fixed configuration parameter to control (e.g. b for path length)
@@ -356,6 +357,8 @@ int main(int argc, char *argv[]) {
     free(config);
     delete_obstacle_marker_func_params(F);
     free_hom_classes_list(target_hom_classes);
+    free(input_json_path);
+    free(astar_args);
 
     return 0;
 }

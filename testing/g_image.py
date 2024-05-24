@@ -12,14 +12,19 @@ theta_min = 1
 # Key constant strings 
 g_image_key = "g_image"
 
-# Function extracting envirnoment parameters from .json file
 def load_parameters(filename):
+    """
+    This function extracts a params dictionary from the input .json file and returns it
+    """
     with open(filename, 'r') as file:
         params = json.load(file)
     return params
 
-# Function to write back to .json simulated uncertainty values, after being added to the params variable 
 def save_to_json(g_image, filename):
+    """
+    Given a freshly computed numpy array g_image, and filepath,
+    this function writes the computed values for g_image into the json file
+    """
     with open(filename, 'r+') as file:
         params = json.load(file) # retrieve current file params
         params[g_image_key] = g_image.tolist()  # Convert numpy array to list for JSON serialization, and add new dictionary entry to params
@@ -27,34 +32,40 @@ def save_to_json(g_image, filename):
         json.dump(params, file, indent=4)
         file.truncate()  # Truncate file to the new size
 
-# Given the input ranges for x,y, convert them to processeable numpy 2-d arrays
 def compute_meshgrids(params, coarsing_factor=1):
-    # Coomputing linear 1-D arrays for x,y depending on the given step and range values
+    """
+    Given input ranges for x,y stored in params, this function
+    converts them to numpy 2-d arrays for processing, with a coarsing factor arbitrarily reducing resolution
+    """
+    # Computing linear 1-D arrays for x,y depending on the given step and range values
     x_steps = (int)((params['x_max'] - params['x_min']) / (coarsing_factor * params['r']))
     y_steps = (int)((params['y_max'] - params['y_min']) / (coarsing_factor * params['r']))
     x = np.linspace(params['x_min'], params['x_max'], x_steps)
     y = np.linspace(params['y_min'], params['y_max'], y_steps)
 
-    # Create the meshgrid for the parameters x and y
-    # NOTE: We use X, Y as global variables representing the robot grid throughout the entire module
-    X, Y = np.meshgrid(x, y)    # generates matrices for parameter space
+    X, Y = np.meshgrid(x, y)  # generates matrices for parameter space
     return X,Y
 
-# This function generates an ellipse characterized by the given parameters, returning the 
-# resulting Z 2d array correcponding to the global X, Y grids 
-def generate_elliptical_surface(X, Y, x_0, y_0, a, b, z_min, alpha):
+def generate_elliptical_surface(X, Y, x_0, y_0, a, b, alpha, z_min=0):
+    """
+    This function generates an ellipse characterized by the given parameters, 
+    applying the key equation to convert from the (t, theta) to the (x, y) representation,
+    and returns the corresponding numpy 2-d array Z corresponding to the meshgrids X, Y given
+    """
     # Define root of elliptical cone, using the desired ground level for the ellipse 
     z_0 = z_min - (alpha * theta_min)
     # Compute the 2-D matrix for the z-values corresponding to each (x,y) pair 
     return np.maximum(0, z_0 + alpha * np.sqrt(((X - x_0) / a)**2 + ((Y - y_0) / b)**2))
 
-# Based on the input obstacles, grid, and uncertainty cap, compute the full image of the uncertainty function g
-# NOTE: This function depends on the axis global variable object ax
 def compute_g_image(params, X, Y):
+    """
+    This function applies generate_elliptical_surface using the input data for the obstacles (in params dictionary)
+    to compute the comprehensive image of g. It returns the corresponding 2-d numpy array
+    """
     # Iterate through the input ellipses
     Z_list = [] # list holding the 2-dimensional numpy arrays corresponding to z-coordinates for each obstacle
-    for e in params["elliptical_obstacles"]: 
-        ZS = generate_elliptical_surface(X, Y, e[0], e[1], e[2], e[3], e[4], e[5])
+    for e in params["elliptical_obstacles"]: # NOTE: hard-code z_min = 0 here to impose the 2-d case
+        ZS = generate_elliptical_surface(X, Y, e[0], e[1], e[2], e[3], e[4])
         Z_list.append(ZS) # add the newly generated ellipse coordinates to the running list
     # Return the resulting values for the uncertainty function in Z
     Z = np.full_like(Z_list[0], params['g_max']) # fill-up Z with g_max
@@ -63,12 +74,13 @@ def compute_g_image(params, X, Y):
         Z = np.minimum(Z, Z0)
     return Z
 
-# This function generates a cross sectional ring corresponding to the ellipse parameters,
-# plus a parameter giving the desired height of the ring,
-# and returns a 3-tuple (X, Y, Z) of the 1d arrays necessary to graph the ring
-def generate_elliptical_ring(x_0, y_0, a, b, z_min, alpha, z_height, t_steps=100, theta_steps=100):
-    # First retrieve the z_0 corresponding to the input elliptical surface 
-    z_0 = z_min - (alpha * theta_min)
+def generate_elliptical_ring(x_0, y_0, a, b, alpha, z_height=0, z_min=0, t_steps=100, theta_steps=100):
+    """
+    This function generates a cross sectional ring corresponding to the ellipse parameters,
+    plus a parameter giving the desired height of the ring,
+    and returns a 3-tuple (X, Y, Z) of the 1d arrays necessary to graph the ring
+    """
+    z_0 = z_min - (alpha * theta_min)   # First retrieve the z_0 corresponding to the input elliptical surface
     t     = np.linspace(t_min,     t_max,     t_steps)      # t parameter from 0 to 2*pi, in discrete step in ndarray
     theta = np.linspace(theta_min, theta_max, theta_steps)  # theta parameter from 0 to theta_max, in discrete steps in ndarray
     ### NOTE: Because the theta array can take no values below theta_min, defining z at any value below z_min yields out-of-range errors
@@ -81,70 +93,23 @@ def generate_elliptical_ring(x_0, y_0, a, b, z_min, alpha, z_height, t_steps=100
     Z2 = np.full_like(X2, z_height) # Create a 2-d numpy array of the same dimension as X2,Y2, but filled with z_fixed 
     return (X2, Y2, Z2)
 
-# Iterate throughout the given obstacle parameters to plot the base rings for each obstacle; 
-# NOTE: Requires input axes object on which to plot the rings
-def plot_base_rings(params, input_axes, z_height=0, ring_color='red'):
-    for e in params["elliptical_obstacles"]: 
-        X1, Y1, Z1 = generate_elliptical_ring(e[0], e[1], e[2], e[3], e[4], e[5], z_height)
-        input_axes.plot(X1, Y1, Z1, color=ring_color, linewidth=2)  # Adding the ring-like ellipse
-
-# Main routine handling ALL graphing procedures:
-def generate_surface_graph(params, X, Y, g_image,
-                           z_lim = (0, 5), 
-                           input_figsize = (10,8)):
-    # Function-local import statement 
-    import matplotlib.pyplot as plt
-
-    # (1) Create figure object
-    fig = plt.figure(figsize=input_figsize)
-
-    # (2) Create axis object
-    ax = fig.add_subplot(111, projection='3d') # granularily create a set of INDEPENDENT axes
-
-    # (3) Eventually add further independent datasets to global axis object 
-    plot_base_rings(params, ax) # Plot the base rings & surface
-    ax.plot_surface(X, Y, g_image, rstride=1, cstride=1, alpha=1.0) # rstride and cstrinde represent sampling frequency for rows & columns in the meshgrids
-
-    # Set axis limits (inputs)
-    ax.set_xlim(params['x_min'], params['x_max'])
-    ax.set_ylim(params['y_min'], params['y_max'])
-    ax.set_zlim(z_lim[0], z_lim[1])
-
-    # Label the axes
-    ax.set_xlabel('X axis')
-    ax.set_ylabel('Y axis')
-    ax.set_zlabel('Z axis')
-
-    # Title and showing the plot
-    ax.set_title('3D Parametric Surface of Ellipses')
-    plt.tight_layout()
-    plt.show()
-
-# Takes as argument the filepath for the json file storing the parameters
+"""
+This module's main function has the objective to take a .json file from the user
+and use the information in the file to compute g, and write
+the corresponding results for the image of g to the file itsels as a 2x2 matrix
+"""
 def main():
-
     # Check if exactly one argument (besides the program name) is given
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} <input_filepath>")
         sys.exit(1)  # Exit the program indicating an error
 
-    # Assign the command-line argument to a variable
     input_filepath = sys.argv[1]
-
     print(f"The input file path is: {input_filepath}")
-
-    # Load parameters from .json file
     params = load_parameters(input_filepath)
-
     X,Y = compute_meshgrids(params)
-
-    # Generate and save resulting image of g
     g_image = compute_g_image(params, X, Y)
     save_to_json(g_image, input_filepath)
-
-    # If we want to graph the surface:
-    # Very computationally expensive, thus may be commented out or use coarser data set
-    # generate_surface_graph(params, X, Y, g_image)
 
 
 if __name__ == '__main__':

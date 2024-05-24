@@ -15,7 +15,7 @@ typedef double complex Complex;
 
 /* forward declarations */
 struct minheap_node; 
-struct vertex;
+struct hom_vertex;
 
 /******* Backtrack_Path ******
  * 
@@ -64,7 +64,7 @@ typedef struct hom_class {
     bool is_evaluated;  // track membership in the closed set
 
     /* Book-keeping properties */
-    struct vertex * endpoint_vertex;
+    struct hom_vertex * endpoint_vertex;
     struct minheap_node * minheap_node;
 
     /* This can be expanded when we have optimized the homotopy class */

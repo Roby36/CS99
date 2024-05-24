@@ -33,6 +33,26 @@ typedef double complex Complex;
     elapsed = seconds + microseconds * 1e-6; \
 } while(0)
 
+// Macro to parse a float from a string
+#define PARSE_FLOAT(str, var, idx) \
+    do { \
+        char* endptr; \
+        (var) = strtod((str), &endptr); \
+        if (*endptr != '\0') { \
+            fprintf(stderr, "Invalid float: %s at arg %d\n", (str), (idx)); \
+            return 1; \
+        } \
+} while (0)
+
+// Macro to parse an integer from a string
+#define PARSE_INT(str, var, idx) \
+    do { \
+        if (sscanf((str), "%d", &(var)) != 1) { \
+            fprintf(stderr, "Invalid integer for parameter %s at arg %d: %s\n", #var, (idx), (str)); \
+            return 1; \
+        } \
+} while (0)
+
 /*********** Params *************
  * Main struct holding all parameters extracted from .json file,
  * which will be passed around all the modules to share the state of the environment 
@@ -61,11 +81,6 @@ typedef struct {
 
     float ** elliptical_obstacles;
     float ** g_image;
-
-    float ** test_path_1;
-    float ** test_path_2;
-    int steps_path1;
-    int steps_path2;
 
 } Params;
 

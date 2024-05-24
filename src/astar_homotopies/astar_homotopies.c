@@ -1,8 +1,8 @@
 
-#include "astar.h"
+#include "astar_homotopies.h"
 
 /* Name of parameter containing path written to .json file */
-static const char * output_path_key_format = "a=%.2f, b=%.2f, L=(%.2f + %.2fi)";
+const char * output_path_key_format = "a=%.2f, b=%.2f, L=(%.2f + %.2fi)";
 
 /********** static / private function headers *******************/
 
@@ -439,22 +439,22 @@ static void print_homotopy_classes(
  *      Params struct containing main information about the grid dimensions
  * 
  * Output:
- *      2-dimensional matrix of vertex pointers, vertex_t *** S, 
+ *      2-dimensional matrix of vertex pointers, hom_vertex_t *** S, 
  *      where S[ys][xs] is the pointer to the vertex struct at the discrete grid coordinate (xs, ys)
  * 
  * NOTE: The large matrix returned must be carefully deallocated by calling delete_vertices
  *       This vertex initialization is only specific to A_star_homotopies, and would thus incorrectly 
  *       initialize the vertices if used for the other version of A*
  */
-static vertex_t *** initialize_vertices(Params * params) {
+static hom_vertex_t *** initialize_vertices(Params * params) {
 
-    vertex_t *** S = malloc(params->ys_steps * sizeof(vertex_t **));  // row pointers
+    hom_vertex_t *** S = malloc(params->ys_steps * sizeof(hom_vertex_t **));  // row pointers
     if (!S) {
         fprintf(stderr, "Failed to allocate memory for grid rows.\n");
         exit(EXIT_FAILURE);
     }
     for (int ys = 0; ys < params->ys_steps; ys++) {
-        S[ys] = (vertex_t **) malloc(params->xs_steps * sizeof(vertex_t *)); // allocate column
+        S[ys] = (hom_vertex_t **) malloc(params->xs_steps * sizeof(hom_vertex_t *)); // allocate column
         if (!S[ys]) {
             fprintf(stderr, "Failed to allocate memory for grid columns at row %d.\n", ys);
             // Free previously allocated memory before exiting
@@ -466,7 +466,7 @@ static vertex_t *** initialize_vertices(Params * params) {
         }
         for (int xs = 0; xs < params->xs_steps; xs++) {
             // Initialize vertex located at (xs, ys) to default parameters
-            vertex_t * new_vertex = malloc(sizeof(vertex_t));
+            hom_vertex_t * new_vertex = malloc(sizeof(hom_vertex_t));
             new_vertex->x_s = xs;
             new_vertex->y_s = ys;
             new_vertex->hom_classes = hom_classes_list_new(); // intialize empty list of Lvalues for each vertex
@@ -497,11 +497,11 @@ static vertex_t *** initialize_vertices(Params * params) {
  *          (for instance by recalling  A_star_homotopies) on it which re-writes on it:
  *  
  */
-void delete_vertices(vertex_t *** S, Params * params, int x_goal_step, int y_goal_step) {
+void delete_vertices(hom_vertex_t *** S, Params * params, int x_goal_step, int y_goal_step) {
 
     for (int ys = 0; ys < params->ys_steps; ys++) {
         for (int xs = 0; xs < params->xs_steps; xs++) {
-            vertex_t * curr_vert = S[ys][xs];
+            hom_vertex_t * curr_vert = S[ys][xs];
             // This free's all the dynamically allocated homotopy classes, except for the goal vertex
             if (xs != x_goal_step || ys != y_goal_step) {
                 free_hom_classes_list(curr_vert->hom_classes);
@@ -514,71 +514,28 @@ void delete_vertices(vertex_t *** S, Params * params, int x_goal_step, int y_goa
 
 }
 
-/**************** A_star_homotopies ***************
- * 
- * Inputs:
- *      Inputs for regular A*:
- *          - Params struct containing all the necessary information regarding the environment
- *          - Config containing the relative weights a, b for uncertainty and path length respectively in the cost funtion
- *          - pointer to the heuristic function
- *          - pointer to the cost function
- *          - tolerance value for float comparisons
- *      Additional inputs for homotopy classes search:
- *          - absolute value tolerance when comparing real and imaginary components of homotopy class descriptors
- *          - obstacle marker function parameters (opaque type handled in obstacle_marker.c)
- *          - pointer of list of target homotopy classes to be updated in place
- *          - number of target homotopy classes
- * 
- * Outputs:
- *      The list of target homotopy classes is updated with the detected homotopy classes into the goal,
- *      as explained in the sub-routine A_star_goal_check.
- * 
- * NOTE: Caller responsible for properly initializing both Params and F_t structs before passing them to A_star_homotopies
- *       Caller responsible for later free'ing target_hom_classes (i.e. by calling free_hom_classes_list(target_hom_classes))
- *          and other already-initialized structs passed such as params and F
- * 
- * 
- * Usage example:
- * 
- *  Params * params = load_json(input_json_path);
-    F_t * F = initialize_obstacle_marker_func_params(params, float_tol);
-    const int num_iterations = 4;   // A* runs
-    const int max_hom_classes = params->num_obstacles;  // how many homotopy classes we want A* to keep track of
-    hom_classes_list_t * target_hom_classes = NULL;     // list of homotopic classes, initialized to NULL
+/****** Main A* algorithm implementation ******/
 
-    for (int i = 0; i < num_iterations; i++) {
-        A_star_homotopies(
-        params, config,
-        zero_heuristic, // this essentially turns A* into Dijkstra's for uniform exploration
-        edge_cost, float_tol,
-        0.1, F,
-        &target_hom_classes,
-        max_hom_classes
-        );
-        // Tweak the cost function to change the order in which homotopy classes are discovered
-        config->a *= powf(16, i);
-    }
-    // Free the final resulting homtopy classes list
-    free_hom_classes_list(target_hom_classes);
-    // Other clean-up routines
- *
- *  
-*/
-void A_star_homotopies(
-    Params * params,
-    Config * config,
-    float (*h) (int, int, int, int, Params *, Config * ),
-    float (*c) (int, int, int, int, Params *, Config * ),
-    float float_tol,
-    /* Homotopy parameters */
-    double abs_tol,     
-    F_t * F,            
-    hom_classes_list_t ** target_hom_classes_ptr, 
-    const int max_hom_classes  
-    ) 
+void A_star_homotopies(struct A_star_homotopies_args * args) 
 {
     int expanded_states = 0;    // we consider a state explored whenever it is added to the closed set
-    int filled_hom_classes = 0; // tracks the number of homotopic classes that have been filled
+    const int max_expandible_states = (args->max_expandible_states_mult) * (args->params->xs_steps) * (args->params->ys_steps);
+    int filled_hom_classes = 0; 
+
+    #ifdef AST_HC_DBG
+    printf(
+        "\nA* invoked with the inputs:\n"
+        "\t(x_g, y_g) = (%f, %f)\n"
+        "\tr = %f, s = %f\n"
+        "\ta = %f, b = %f\n"
+        "\tfloat tolerance = %f\n"
+        "\tabsolute tolerance for homotopy classes: %f\n"
+        "\tMaximum expandible states: %d\n\n",
+    args->params->x_g, args->params->y_g, args->params->r, args->params->s, 
+    args->config->a, args->config->b, args->float_tol, args->abs_tol,
+    max_expandible_states
+    );
+    #endif
 
     #ifdef ASTCLCK
     struct timeval start, end;
@@ -588,29 +545,29 @@ void A_star_homotopies(
     #endif
 
     // Check first that we ahve properly computed the image of g
-    if (params->g_image == NULL) {
+    if (args->params->g_image == NULL) {
         DEBUG_ERROR("params->g_image = NULL");
         return;
     }
 
     // Convert start and goal coordinates to the relative s-steps
-    const int x_start_step = (int) (params->x_s - params->x_min) / params->s;
-    const int x_goal_step  = (int) (params->x_g - params->x_min) / params->s;
-    const int y_start_step = (int) (params->y_s - params->y_min) / params->s;
-    const int y_goal_step  = (int) (params->y_g - params->y_min) / params->s;    
+    const int x_start_step = (int) (args->params->x_s - args->params->x_min) / args->params->s;
+    const int x_goal_step  = (int) (args->params->x_g - args->params->x_min) / args->params->s;
+    const int y_start_step = (int) (args->params->y_s - args->params->y_min) / args->params->s;
+    const int y_goal_step  = (int) (args->params->y_g - args->params->y_min) / args->params->s;    
 
     /* This dynamic grid allocation within A* is deliberate to ensure that the states are perfectly blank at each run of the algorithm */
-    vertex_t *** S = initialize_vertices(params);
+    hom_vertex_t *** S = initialize_vertices(args->params);
 
     // Initialize starting homotopy class object
-    vertex_t * start_vertex = S[y_start_step][x_start_step];
+    hom_vertex_t * start_vertex = S[y_start_step][x_start_step];
     hom_class_t * start_hom_class = (hom_class_t *) malloc(sizeof(hom_class_t));
     start_hom_class->Lval = CMPLX(0.0, 0.0);
     start_hom_class->next = NULL;   
     start_hom_class->parent = NULL;
     start_hom_class->g_score = 0.0f;
-    start_hom_class->f_score = h(
-        x_start_step, y_start_step, x_goal_step, y_goal_step, params, config
+    start_hom_class->f_score = args->h(
+        x_start_step, y_start_step, x_goal_step, y_goal_step, args->params, args->config
     );
     start_hom_class->is_evaluated = false;
     start_hom_class->endpoint_vertex = start_vertex;
@@ -618,7 +575,7 @@ void A_star_homotopies(
     start_hom_class->backtrack = NULL;
 
     // Insert starting homotopy class object into the list of homotopy classes into the start vertex 
-    insert_hom_class(start_vertex->hom_classes, start_hom_class, abs_tol);  
+    insert_hom_class(start_vertex->hom_classes, start_hom_class, args->abs_tol);  
 
     // Initialize open set with desired accessor functions and data type for homotopy classes
     open_set_t * open_set = open_set_new(
@@ -634,6 +591,12 @@ void A_star_homotopies(
         hom_class_t * curr_hom_class = dequeue_min(open_set);
         curr_hom_class->is_evaluated = true; // dequeue homotopy class & add it to the closed set
         expanded_states++;
+        if (expanded_states > max_expandible_states) {
+            #ifdef AST_HC_DBG
+            printf("Maximum number of expandible states %d surpassed: breaking out of main loop...\n", max_expandible_states);
+            #endif
+            break;
+        }
 
         // keep the current x,y grid coordinates as local variables for clarity
         int x_c = curr_hom_class->endpoint_vertex->x_s;
@@ -641,17 +604,17 @@ void A_star_homotopies(
 
         // Here we would generally check for the goal state and break 
         if (A_star_goal_check(
-                params, abs_tol, F, curr_hom_class, x_goal_step, y_goal_step, 
-                target_hom_classes_ptr, &filled_hom_classes, max_hom_classes)) 
+                args->params, args->abs_tol, args->F, curr_hom_class, x_goal_step, y_goal_step, 
+                args->target_hom_classes_ptr, &filled_hom_classes, args->max_hom_classes)) 
         {
             print_homotopy_classes(
-                params, config, curr_hom_class, float_tol, curr_hom_class->endpoint_vertex->hom_classes, 
-                abs_tol, expanded_states, open_set_size(open_set)); // show the current path
-            write_path(curr_hom_class, config); // write the path to ./params.json
+                args->params, args->config, curr_hom_class, args->float_tol, curr_hom_class->endpoint_vertex->hom_classes, 
+                args->abs_tol, expanded_states, open_set_size(open_set)); // show the current path
+            write_path(curr_hom_class, args->config); // write the path to ./params.json
             // Break here if we have reached the desired number of homotopy classes
-            if (filled_hom_classes == max_hom_classes) {
+            if (filled_hom_classes == args->max_hom_classes) {
                 #ifdef AST_HC_DBG
-                char * hom_classes_str = complex_list_to_string(*target_hom_classes_ptr);
+                char * hom_classes_str = complex_list_to_string(*(args->target_hom_classes_ptr));
                 printf(
                     "A* filled %d homotopy classes with Lvalues \n\t%s.\nBreaking main loop...\n", 
                     filled_hom_classes, hom_classes_str);
@@ -672,17 +635,17 @@ void A_star_homotopies(
             int x_n = x_c + dx; // fetch step coordinates of neighbouring state
             int y_n = y_c + dy;
             // Check accessibility conditions for the neighbor
-            if (!is_accessible(params, x_n, y_n, float_tol)) {
+            if (!is_accessible(args->params, x_n, y_n, args->float_tol)) {
                 continue; 
             }
             // Now that we know that the vertex can be accessed, we can extract it 
-            vertex_t * neighb_vertex = S[y_n][x_n];
+            hom_vertex_t * neighb_vertex = S[y_n][x_n];
             // Compute L-step for the current transition
-            Complex L_step = get_Lval(F, x_c, y_c, x_n, y_n);
+            Complex L_step = get_Lval(args->F, x_c, y_c, x_n, y_n);
             // Add the L-step to the L-value for the current homotopy class to obtain the neighboring L value
             Complex neighb_Lval = curr_hom_class->Lval + L_step;
             // Search for the homtopy class corresponding to the given endpoint vertex and the neighboring L value
-            hom_class_t * neighb_hom_class = hom_class_get(neighb_vertex->hom_classes, neighb_Lval, abs_tol);
+            hom_class_t * neighb_hom_class = hom_class_get(neighb_vertex->hom_classes, neighb_Lval, args->abs_tol);
 
             /** LOOPCHECKS: would go here, but for now we use sufficiently low max_hom_classes to avoid loops  */
 
@@ -699,7 +662,7 @@ void A_star_homotopies(
                 neighb_hom_class->minheap_node = NULL;
                 neighb_hom_class->backtrack = NULL; 
                 // Insert it into the list of homotopy classes for the neighbor vertex 
-                insert_hom_class(neighb_vertex->hom_classes, neighb_hom_class, abs_tol);
+                insert_hom_class(neighb_vertex->hom_classes, neighb_hom_class, args->abs_tol);
             }
 
             // Check if the homotopy class is already in the closed set 
@@ -707,8 +670,8 @@ void A_star_homotopies(
                 continue;
             }
             // Calculate tentative g_score for homotopy class
-            float tent_g = curr_hom_class->g_score + c(
-                x_c, y_c, x_n, y_n, params, config
+            float tent_g = curr_hom_class->g_score + args->c(
+                x_c, y_c, x_n, y_n, args->params, args->config
             );
             // If no better path found for this homotopy class, continue
             if (tent_g >= neighb_hom_class->g_score) {
@@ -720,7 +683,7 @@ void A_star_homotopies(
             #endif
             neighb_hom_class->parent  = curr_hom_class;
             neighb_hom_class->g_score = tent_g;
-            neighb_hom_class->f_score = tent_g + h(x_n, y_n, x_goal_step, y_goal_step, params, config);
+            neighb_hom_class->f_score = tent_g + args->h(x_n, y_n, x_goal_step, y_goal_step, args->params, args->config);
 
             /** CRITICAL: If the homotopy class is already in the min heap, dedrease key, otherwise add it */
             if (neighb_hom_class->minheap_node) {
@@ -742,11 +705,13 @@ void A_star_homotopies(
         "\ta = %f, b = %f\n"
         "\tfloat tolerance = %f\n"
         "\tabsolute tolerance for homotopy classes: %f\n"
+        "\tMaximum expandible states: %d\n"
         "\tTotal states expanded: %d\n"
         "\tCurrent size of the open set (enqueued states): %d\n"
         "\nTime elapsed since invoking A_star_homotopies:\n\t%.5f seconds\n\n",
-    params->x_g, params->y_g, params->r, params->s, config->a, config->b, 
-    float_tol, abs_tol, expanded_states, open_set_size(open_set), elapsed
+    args->params->x_g, args->params->y_g, args->params->r, args->params->s, 
+    args->config->a, args->config->b, args->float_tol, args->abs_tol,
+    max_expandible_states, expanded_states, open_set_size(open_set), elapsed
     );
     #endif
 
@@ -757,7 +722,7 @@ void A_star_homotopies(
 
     free_open_set(open_set); 
     /** IMPORTANT: Grid deallocation, saving the hom_classes_list for the goal vertex as this is the collateral output */ 
-    delete_vertices(S, params, x_goal_step, y_goal_step);
+    delete_vertices(S, args->params, x_goal_step, y_goal_step);
     
 }
 
@@ -798,7 +763,7 @@ static bool simple_check_loop(hom_class_t * curr_hom_class, int x_n, int y_n)
 }
 
 static bool check_loop(
-    Params * params, F_t * F, vertex_t * neighb_vertex, 
+    Params * params, F_t * F, hom_vertex_t * neighb_vertex, 
     int x_c, int y_c, int x_n, int y_n,
     Complex neighb_Lval, float abs_tol) 
 {

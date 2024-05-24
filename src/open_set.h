@@ -7,7 +7,7 @@
 #include <math.h>
 #include <time.h>
 
-#include "vertex.h"
+#include "hom_vertex.h" // only for unit testing purposes
 #include "hom_classes.h"
 #include "commonmacros.h"
 

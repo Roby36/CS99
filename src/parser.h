@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "cJSON.h"
 #include "utils.h"
 #include "commonmacros.h"
 

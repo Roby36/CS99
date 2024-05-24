@@ -6,7 +6,7 @@
 
 struct minheap_node; // forward declaration of min_heap node
 
-typedef struct vertex {
+typedef struct hom_vertex {
 
     /* Homotopy class independent properties of each vertex */
     int x_s, y_s;   // discretized s-steps; vertex would be located at matrix entry M[y_s][x_s]
@@ -27,5 +27,5 @@ typedef struct vertex {
         
     */
 
-} vertex_t;
+} hom_vertex_t;
 

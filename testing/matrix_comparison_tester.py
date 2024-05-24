@@ -1,17 +1,12 @@
 
 import json
 import sys
-import elliptical_surface_graph as esg
+import g_image as gi
 
-# Key constant strings 
-g_image_test_key = "g_image_test"
+def compare_matrices_with_tolerance(file_path1, key1, file_path2, key2, tolerance=1e-6):
 
-def compare_matrices_with_tolerance(file_path, key1, key2, tolerance=1e-6):
-    with open(file_path, 'r') as file:
-        data = json.load(file)
-    
-    matrix1 = data[key1]
-    matrix2 = data[key2]
+    matrix1 = gi.load_parameters(file_path1)[key1]
+    matrix2 = gi.load_parameters(file_path2)[key2]
 
     # Ensure both matrices have the same dimensions
     if len(matrix1) != len(matrix2) or any(len(row1) != len(row2) for row1, row2 in zip(matrix1, matrix2)):
@@ -30,17 +25,13 @@ def compare_matrices_with_tolerance(file_path, key1, key2, tolerance=1e-6):
 def main():
 
     # Check if exactly one argument (besides the program name) is given
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <input_filepath>")
+    if len(sys.argv) != 5:
+        print(f"Usage: {sys.argv[0]} <file_path1> <key1> <file_path2> <key2>")
         sys.exit(1)  # Exit the program indicating an error
 
-    # Assign the command-line argument to a variable
-    input_filepath = sys.argv[1]
-
-    print(f"The input file path is: {input_filepath}")
-
-    # Example usage
-    compare_matrices_with_tolerance(input_filepath, esg.g_image_key, g_image_test_key)
+    file_path1, key1, file_path2, key2 = sys.argv[1:5]
+    print(f"Running matrix comparison with inputs file_path1: {file_path1}, key1: {key1}, file_path2: {file_path2}, key2: {key2}")
+    compare_matrices_with_tolerance(file_path1, key1, file_path2, key2)
 
 if __name__ == '__main__':
     main()
