@@ -153,6 +153,19 @@ char* complex_list_to_string(hom_classes_list_t *list) {
     return result;
 }
 
+/************* unflag_homotopy_classes *************
+ * 
+ * This function unflags all the homotopy classes in a given list
+ * to inform A* that they have not yet been updated by the current iteration
+*/
+void unflag_homotopy_classes(hom_classes_list_t *list) {
+    hom_class_t *current = list->head;
+    while (current != NULL) {
+        current->updated = false;
+        current = current->next;
+    }
+}
+
 /******* Unit testing area ********/
 
 #ifdef LVAL_UT

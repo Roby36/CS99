@@ -349,7 +349,7 @@ void free_backtrack(hom_class_t * hom_class) {
  * Outputs:
  *      If we have identified a homotopy class to the goal within the list of target homotopy classes,
  *      we update its entry in the input list, and increase the count of successfully filled target homotopy classes.
- *      If we have a NULL input list, we fill it with the list corresponding to the goal vertex.
+ *      If we have a NULL input list (initialization), we fill it with the list corresponding to the goal vertex.
  *      Returns true iff we have reached the goal
  * 
  * NOTE: This function writes directly to the elements of the input list of homotopy classes. 
@@ -378,7 +378,7 @@ static bool A_star_goal_check(
     expand_backtrack(params, hom_class);
 
     if (*target_hom_classes_ptr == NULL) {
-        // once the target number is reached have been reached, we simply fill in with the goal hom_classes_list 
+        // once the target number is reached, we simply fill in with the goal hom_classes_list 
         if (++(*filled_hom_classes) == max_hom_classes) {
             *target_hom_classes_ptr = hom_class->endpoint_vertex->hom_classes;
         }
@@ -390,7 +390,7 @@ static bool A_star_goal_check(
         if (target_hom_class != NULL) {
             free_backtrack(target_hom_class);               // first clean up the old homotopy class's path struct
             hom_class_t * next = target_hom_class->next;    /** CRITICAL: preserve pointer to next element, else you break *target_hom_classes_ptr list! */
-            *(target_hom_class) = *(hom_class);             // copy the new value, inluding the just-allocated backtrack, into the target value
+            *(target_hom_class) = *(hom_class);             // copy the new value in place, inluding the just-allocated backtrack, into the target value
             target_hom_class->next = next;                  // reinstate the previous next that got nullified by the copy operation
             (*filled_hom_classes)++;                        // Mark the extra homotopy class added to the target list
         }
@@ -551,6 +551,11 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
         return;
     }
 
+    // Unflag immmediately all the homotopy class objects to show that they have not yet been updated
+    if (*(args->target_hom_classes_ptr) != NULL) {
+        unflag_homotopy_classes(*(args->target_hom_classes_ptr));
+    }
+    
     // Convert start and goal coordinates to the relative s-steps
     const int x_start_step = (int) (args->params->x_s - args->params->x_min) / args->params->s;
     const int x_goal_step  = (int) (args->params->x_g - args->params->x_min) / args->params->s;
@@ -565,6 +570,7 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
     hom_class_t * start_hom_class = (hom_class_t *) malloc(sizeof(hom_class_t));
     start_hom_class->Lval = CMPLX(0.0, 0.0);
     start_hom_class->next = NULL;   
+    start_hom_class->updated = true; // default value
     start_hom_class->parent = NULL;
     start_hom_class->g_score = 0.0f;
     start_hom_class->f_score = args->h(
@@ -655,6 +661,7 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
                 neighb_hom_class = (hom_class_t *) malloc(sizeof(hom_class_t));
                 neighb_hom_class->Lval = neighb_Lval;
                 neighb_hom_class->next = NULL; 
+                neighb_hom_class->updated = true; // default value
                 neighb_hom_class->parent = NULL;
                 neighb_hom_class->g_score = INFINITY;
                 neighb_hom_class->f_score = INFINITY;

@@ -3,6 +3,8 @@
 #include "astar_homotopies.h"
 #include "parser.h"
 
+#define MAX_HC_PER_TABLE 3  // Maximum number of homotopy classes per table, determined by latex rendering issues 
+
 /* This module runs several times A* with different a,b configurations to optimize either for uncertainty or path length */
 
 /* Getters / setters for fixed and variable path metrics */
@@ -70,9 +72,8 @@ void boundary_optimization(
     const float scale_fact,   
     const int MAX_IT        
 ) {
-    // <metric_type> (iteration # -> (homotopy class -> Backtrack path *))
-    Backtrack_Path *** fix_met_vals = (Backtrack_Path ***) malloc((MAX_IT + 1) * sizeof(Backtrack_Path **));
-    Backtrack_Path *** var_met_vals = (Backtrack_Path ***) malloc((MAX_IT + 1) * sizeof(Backtrack_Path **));
+    //  map: (iteration # -> (homotopy class -> Backtrack path *))
+    Backtrack_Path *** bt_paths = (Backtrack_Path ***) malloc((MAX_IT + 1) * sizeof(Backtrack_Path **));
     // <config_type> (iteration # -> config value)
     float * fix_config_vals = (float *) malloc((MAX_IT + 1) * sizeof(float));
     float * var_config_vals = (float *) malloc((MAX_IT + 1) * sizeof(float));
@@ -95,12 +96,13 @@ void boundary_optimization(
         var_config_vals[curr_it] = *(var_config);
 
         // Allocate arrays of path pointers for each homotopy class of this iteration
-        fix_met_vals[curr_it] = (Backtrack_Path **) malloc((astar_args->max_hom_classes) * sizeof(Backtrack_Path *));
-        var_met_vals[curr_it] = (Backtrack_Path **) malloc((astar_args->max_hom_classes) * sizeof(Backtrack_Path *));
+        bt_paths[curr_it] = (Backtrack_Path **) malloc((astar_args->max_hom_classes) * sizeof(Backtrack_Path *));
 
         /** NOTE: A_star_homotopies keeps intact the relative location of each homotopy class within the benchmark_hom_classes list,
          * and thus updates its corresponding values in place. Hence we can expect each homotopy class to be located constantly at the same array index. 
          * While the Back_Track oject is destroyed at each iteration, A_star_homotopies writes to params.json each path into the goal vertex it discovers.
+         * This also has the implication that if we surpass the maximum allowed states, the resulting paths will
+         * remain unchanged from the previous iteration, and thus will be copied over to the next iteration. 
          * For more information on the implications of this call see A_star_goal_check in astar.c 
         */        
         A_star_homotopies(astar_args);
@@ -111,14 +113,12 @@ void boundary_optimization(
         homotopy_classes_updated = false; 
 
         while (hom_class_it != NULL) {
-
             // Get currently unallocated entries for current iteration and homotopy class
-            Backtrack_Path ** fix_curr_entry_ptr = &(fix_met_vals[curr_it][curr_hom_index]);
-            Backtrack_Path ** var_curr_entry_ptr = &(var_met_vals[curr_it][curr_hom_index]);
+            Backtrack_Path ** curr_path_ptr = &(bt_paths[curr_it][curr_hom_index]);
 
             // Check that this homotopy class's fixed path metric is within benchmark bounds
             if ((curr_it != 0) && // ensure that we skip the condition for the benchmark itself 
-                *(fix_path_met(hom_class_it->backtrack)) > (1.0f + bound) * (* (fix_path_met(fix_met_vals[0][curr_hom_index]))) ) 
+                *(fix_path_met(hom_class_it->backtrack)) > ((1.0f + bound) * (* (fix_path_met(bt_paths[0][curr_hom_index])))) ) 
             {
                 #ifdef BO_LOG
                 printf(
@@ -131,18 +131,35 @@ void boundary_optimization(
                 );
                 #endif
 
-                // Set entries to NULL to show that the boundary condition was not satisfied, and skip over the allocations 
-                *fix_curr_entry_ptr = *var_curr_entry_ptr = NULL;
+                // Set path to NULL to show that the boundary condition was not satisfied, and skip over the allocation
+                *curr_path_ptr = NULL;
                 goto hom_class_inner_loop_end;  // continue to next iteration
             }
 
+            // Next, check that the homotopy class has actually been updated by A* (and not just left in place after state limit exceeded) 
+            if (!hom_class_it->updated) 
+            {
+                #ifdef BO_LOG
+                printf(
+                    "\nBoundary optimization: " 
+                    " skipping homotopy class (%.2f + %.2fi) / index %d, setting Backtrack_Path = NULL, "
+                    " at iteration %d becuase the homotopy class was not updated by A* (likely due to exceeding maximum expandible states), "
+                    " with variable configuration parameter %.2f\n",
+                    creal(hom_class_it->Lval), cimag(hom_class_it->Lval), curr_hom_index,
+                    curr_it, *(var_config)
+                );
+                #endif
+
+                // Set path to NULL to show that the boundary condition was not satisfied, and skip over the allocation
+                *curr_path_ptr = NULL;
+                goto hom_class_inner_loop_end;  // continue to next iteration
+            }
             /** OPTIONAL: Check for path convergence or unexpected rise by comparing with previous values of variable path metric*/
 
             // If the bound condition was passed, then allocate paths, and set them to their current values 
-            *fix_curr_entry_ptr = (Backtrack_Path *) malloc(sizeof(Backtrack_Path));
-            *var_curr_entry_ptr = (Backtrack_Path *) malloc(sizeof(Backtrack_Path));
-            *(fix_path_met(*fix_curr_entry_ptr)) = *(fix_path_met(hom_class_it->backtrack));  // benchmark for curr_hom_index = fix_met_vals[0][curr_hom_index] 
-            *(var_path_met(*var_curr_entry_ptr)) = *(var_path_met(hom_class_it->backtrack));
+            *curr_path_ptr = (Backtrack_Path *) malloc(sizeof(Backtrack_Path));
+            *(fix_path_met(*curr_path_ptr)) = *(fix_path_met(hom_class_it->backtrack));  // benchmark for curr_hom_index = fix_met_vals[0][curr_hom_index] 
+            *(var_path_met(*curr_path_ptr)) = *(var_path_met(hom_class_it->backtrack));
             homotopy_classes_updated = true;    // if we make it to here, flag an update in at least one homotopy class
 
             // End of loop: iterating to next homotopy class
@@ -158,20 +175,18 @@ void boundary_optimization(
             #endif
             break;
         }
-
         if (!homotopy_classes_updated) {
             #ifdef BO_LOG
             printf("\nBoundary optimization terminated as no homotopy clases have been updated at iteration %d\n", curr_it);
             #endif
             break;
         }
-        
         // Guarantees that A* is performed for the updated value 
         *(var_config) *= var_mult;  
     }
 
 
-    /* Main routine terminated: Logging and cleaning up simultaneously */
+    /** ALGOEND: Outputting results and cleaning up from here below */
     #ifdef BO_LOG 
     printf(
         "\nboundary_optimization terminated with inputs:\n"
@@ -180,74 +195,116 @@ void boundary_optimization(
     );
     #endif
 
+    /* Formatting directly to LaTex table */
+    #ifdef BO_LATEX
+    printf("\n\n---------------- LATEX TABLES START ----------------\n\n");
+    hom_class_t *hom_class_it = (*(astar_args->target_hom_classes_ptr))->head;
+    curr_hom_index = 0; /** NOTE: This variable was already used previously at this scope */
+    int total_hom_classes = astar_args->max_hom_classes; // Assuming this gives the total number of homotopy classes
+    int table_count = 0;
 
-    /*
-    
-    printf("\\begin{table}[h!]\n");
-    printf("\\centering\n");
-    printf("\\begin{tabular}{|c|c|");
-    for (int j = 0; j < astar_args->max_hom_classes; j++) {
-        printf("c|c|"); // Two columns per homotopy class
-    }
-    printf("}\n\\hline\n");
-    printf("Iteration & Fixed Config & Variable Config ");
+    while (hom_class_it != NULL) {
+        int num_classes_in_table = 0;
+        
+        printf("\\begin{table}[h!]\n");
+        printf("\\centering\n");
+        printf("\\begin{tabularx}{\\textwidth}{|X|X|X|");  // Start tabularx with the specified width
 
-    for (int j = 0; j < astar_args->max_hom_classes; j++) {
-        printf("& Fixed Path Metric %d & Variable Path Metric %d ", j, j);
-    }
-    printf("\\\\ \\hline\n");
+        hom_class_t *temp_it = hom_class_it;    // holds intial homotopy class pointer for this table
+        int start_hom_index = curr_hom_index;   
+        for (int j = 0; j < MAX_HC_PER_TABLE && hom_class_it != NULL; j++) {
+            printf("X|X|"); // Two columns per homotopy class
+            num_classes_in_table++;
+            hom_class_it = hom_class_it->next;  // advance main homotopy class iterator with index
+            curr_hom_index++;
+        }
+        printf("}\n\\hline\n");
+        
+        // Print headers for the iteration and configuration columns
+        printf("It & f.c. & v.c. ");
+        for (int i = 0; i < num_classes_in_table && temp_it != NULL ; i++) {
+            printf("& \\multicolumn{2}{c|}{%.2f + %.2fi} ", creal(temp_it->Lval), cimag(temp_it->Lval));
+            temp_it = temp_it->next;    // advance until we either terminate classes in table or hit the null ptr
+        }
+        printf("\\\\ \\cline{4-%d}\n", 3 + 2 * num_classes_in_table);
 
-    // Iterating over each iteration and each homotopy class
-    for (int it = 0; it < curr_it; it++) {
-
-        printf("%d & %.2f & %.2f", it, fix_config_vals[it], var_config_vals[it]);  // assuming pointers to floats for configs
-
-        for (int curr_hom_index = 0; curr_hom_index < astar_args->max_hom_classes; curr_hom_index++) {
-
-            // NULL-checks
-            
-
-            float fixed_metric    = *(fix_path_met(fix_met_vals[it][curr_hom_index]));
-            float variable_metric = *(var_path_met(var_met_vals[it][curr_hom_index]));
-            printf(" & %.2f & %.2f", fixed_metric, variable_metric);
+        // Adding subheaders for fixed and variable path metrics
+        printf("& & ");
+        for (int j = 0; j < num_classes_in_table; j++) {
+            printf("& f.p.m. & v.p.m. ");
         }
         printf("\\\\ \\hline\n");
+
+        // Iterating over each iteration and each homotopy class
+        for (int it = 0; it < curr_it; it++) {
+            printf("%d & %.2f & %.2f", it, fix_config_vals[it], var_config_vals[it]);
+            for (int temp_hom_index = start_hom_index; 
+                     temp_hom_index < curr_hom_index; 
+                     temp_hom_index++) 
+                {
+                if (bt_paths[it][temp_hom_index] == NULL) {    // path out of bounds
+                    printf(" & oob & oob");
+                } else {
+                    printf(
+                        " & %.2f & %.2f", 
+                        *(fix_path_met(bt_paths[it][temp_hom_index])), 
+                        *(var_path_met(bt_paths[it][temp_hom_index]))
+                    );
+                }
+            }
+            printf("\\\\ \\hline\n");
+        }
+        printf("\\end{tabularx}\n");
+        printf("\\caption{Summary of configurations and path metrics across iterations for table %d}\n", ++table_count);
+        printf("\\label{tab:metrics_summary_%d}\n", table_count);
+        printf("\\end{table}\n");
     }
-    printf("\\end{tabular}\n");
-    printf("\\caption{Summary of configurations and path metrics across iterations}\n");
-    printf("\\label{tab:metrics_summary}\n");
-    printf("\\end{table}\n");
+    printf("\n\n---------------- LATEX TABLES END ----------------\n\n");
+    #endif
+
+
+    
+
+    /* SAMPLE OUTPUT:
+
+        \begin{table}[h!]
+        \centering
+        \begin{tabularx}{\textwidth}{|X|X|X|X|X|X|X|X|X|}
+        \hline
+        \textbf{It.} & \textbf{f.c.} & \textbf{v.c.} & \multicolumn{2}{c|}{\textbf{-19.80 -61.57i}} & \multicolumn{2}{c|}{\textbf{0.17 + 1.69i}} & \multicolumn{2}{c|}{\textbf{0.17 + 7.98i}} \\ \cline{4-9}
+        & & & \textbf{f.p.m.} & \textbf{v.p.m.} & \textbf{f.p.m.} & \textbf{v.p.m.} & \textbf{f.p.m.} & \textbf{v.p.m.} \\ \hline
+        0 & 1.00 & 0.00 & 55.16 & 22.64 & 55.54 & 31.46 & 61.26 & 34.35 \\ \hline
+        1 & 1.00 & 0.01 & 55.16 & 21.44 & 55.54 & 22.38 & 61.26 & 24.48 \\ \hline
+        2 & 1.00 & 0.04 & 55.16 & 21.44 & 55.54 & 22.38 & 61.26 & 24.48 \\ \hline
+        3 & 1.00 & 0.16 & 55.16 & 21.44 & 55.54 & 22.38 & 61.26 & 24.48 \\ \hline
+        4 & 1.00 & 0.64 & 55.16 & 21.44 & 55.54 & 22.38 & 61.26 & 24.48 \\ \hline
+        \end{tabularx}
+        \caption{Summary of configurations and path metrics across iterations}
+        \label{tab:metrics_summary}
+        \end{table}
 
     */
-
-
+    
     /* Clean-up procedure */
     for (int it = 0; it < curr_it; it++) {
         hom_class_t * hom_class_it = (*(astar_args->target_hom_classes_ptr))->head;
         curr_hom_index = 0;
         while (hom_class_it != NULL) {
             // Check that this Backtrack path was actually allocated 
-            if (fix_met_vals[it][curr_hom_index] != NULL) {
-                free(fix_met_vals[it][curr_hom_index]);
+            if (bt_paths[it][curr_hom_index] != NULL) {
+                free(bt_paths[it][curr_hom_index]);
             }
-            if (var_met_vals[it][curr_hom_index] != NULL) {
-                free(var_met_vals[it][curr_hom_index]);
-            }
-
             // Slide forward
             curr_hom_index++;
             hom_class_it = hom_class_it->next;
         }
 
-        free(fix_met_vals[it]);
-        free(var_met_vals[it]);
+        free(bt_paths[it]);
     }
 
-    free(fix_met_vals);
-    free(var_met_vals);
+    free(bt_paths);
     free(fix_config_vals); 
     free(var_config_vals);
-
 }
 
 
@@ -274,14 +331,15 @@ int main(int argc, char *argv[]) {
     float var_mult = 0.0f;
     int MAX_IT = 0;
     int max_expandible_states_mult = 0;
+    int max_hom_classes = 0;
 
     /* Local variables for A* */
     Params * params;
     Config * config;
 
     // Parsing command-line arguments
-    if (argc != 6) { 
-        fprintf(stderr, "Usage: %s <input_json_path> <bound> <var_mult> <MAX_IT> <max_expandible_states_mult> \n", argv[0]);
+    if (argc != 7) { 
+        fprintf(stderr, "Usage: %s <input_json_path> <bound> <var_mult> <MAX_IT> <max_expandible_states_mult> <max_hom_classes> \n", argv[0]);
         return 1;  
     }
 
@@ -296,6 +354,7 @@ int main(int argc, char *argv[]) {
     PARSE_FLOAT(argv[3], var_mult, 3);
     PARSE_INT(argv[4], MAX_IT, 4);
     PARSE_INT(argv[5], max_expandible_states_mult, 5);
+    PARSE_INT(argv[6], max_hom_classes, 6);
 
     params = load_json(input_json_path);
     if (params == NULL) {
@@ -305,7 +364,7 @@ int main(int argc, char *argv[]) {
 
     config = malloc(sizeof(Config));
     F_t * F = initialize_obstacle_marker_func_params(params, float_tol);
-    const int max_hom_classes = params->num_obstacles + (params->num_obstacles / 2); // 50% more than the number of obstacles
+    // const int max_hom_classes = params->num_obstacles + (params->num_obstacles / 2); // 50% more than the number of obstacles
     hom_classes_list_t * target_hom_classes = NULL; 
 
     // Log the parsed parameters

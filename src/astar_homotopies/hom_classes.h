@@ -56,6 +56,7 @@ typedef struct hom_class {
     /* Homotopy class special properties */
     Complex Lval;
     struct hom_class * next;
+    bool updated;   // keeps track of which homotopy classes were updated during a single A* iteration
 
     /* General properties of vertices, updated for each homotopy class */
     struct hom_class * parent; 
@@ -98,4 +99,4 @@ void free_hom_classes_list(hom_classes_list_t *hom_classes_list);
 hom_class_t * hom_class_get(hom_classes_list_t *hom_classes_list, Complex Lval, double abs_tol);
 bool insert_hom_class(hom_classes_list_t *hom_classes_list, hom_class_t * hom_class, double abs_tol);
 char* complex_list_to_string(hom_classes_list_t *list);
-
+void unflag_homotopy_classes(hom_classes_list_t *list);

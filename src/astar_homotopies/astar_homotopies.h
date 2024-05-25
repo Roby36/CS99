@@ -52,8 +52,10 @@ float zero_heuristic(
  *          - number of target homotopy classes
  * 
  * Outputs:
- *      The list of target homotopy classes is updated with the detected homotopy classes into the goal,
- *      as explained in the sub-routine A_star_goal_check.
+ *          -  Possible return value: The number of filled homotopy classes, which may or may not be the input maximum homotopy classes
+ *          -  Collateral: The list of target homotopy classes is updated with the detected homotopy classes into the goal,
+ *                         as explained in the sub-routine A_star_goal_check.
+ * 
  * 
  * NOTE: Caller responsible for properly initializing both Params and F_t structs before passing them to A_star_homotopies
  *       Caller responsible for later free'ing target_hom_classes (i.e. by calling free_hom_classes_list(target_hom_classes))
@@ -84,7 +86,6 @@ float zero_heuristic(
     free_hom_classes_list(target_hom_classes);
     // Other clean-up routines
  *
- *  
 */
 struct A_star_homotopies_args {
     Params * params;

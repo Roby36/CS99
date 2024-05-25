@@ -243,6 +243,7 @@ int open_set_size(open_set_t * set) {
 /** NOTE: 
  * These methods are disabled because we undefined these elements for vertex structs 
  * since they are currently held by the homotopy classes strcuts 
+
 float vertex_get_f_score (void * vertex) {
     return ((vertex_t *) vertex)->f_score;
 }
@@ -250,6 +251,7 @@ void vertex_set_minheap_node (void * vertex, minheap_node * minheap_node) {
     ((vertex_t *) vertex)->minheap_node = minheap_node;
 }
 */
+
 
 float hom_class_get_f_score (void * hom_class) {
     return ((hom_class_t *) hom_class)->f_score;

@@ -128,32 +128,30 @@ def generate_final_graph(
     # (2) Create main axis object
     ax = fig.add_subplot(111) # granularily create a set of INDEPENDENT axes
 
-    # (3) Eventually add further independent datasets to global axis object 
-    plot_base_rings(params, ax, "red") # Plot obstacles
-    plot_A_star_homotopies_output_paths(params, ax) # Plot all the homotopy paths returned by A*
-    
+    # (3) Eventually add further independent datasets to global axis object with plotting functions
+
     # NOTE: Recompute separate coarser version of g_image to be graphed
     X, Y = gi.compute_meshgrids(params, coarsing_factor)
     g_image_coarse = gi.compute_g_image(params, X, Y)
 
-    """ blue colormap:
-    # Create a custom single-color colormap (e.g., blue)
-    colors = ["#ffffff", "#0000ff"]  # White to Blue gradient
+    # Create a custom single-color colormap (e.g., blue reversed)
+    colors = ["#0000ff", "#ffffff"]  # White to Blue gradient
     cmap = LinearSegmentedColormap.from_list("custom_blue", colors, N=100)
-    """
-    """ gray reversed colormap:
+
+    """ Reverse gray colormap
     # Create a custom single-color colormap (e.g., grayscale reversed)
     colors = ["#000000", "#ffffff"]  # White to Black gradient
     cmap = LinearSegmentedColormap.from_list("custom_gray", colors, N=100)
     """
-    # Create a custom single-color colormap (e.g., grayscale)
-    colors = ["#ffffff", "#000000"]  # White to Black gradient
-    cmap = LinearSegmentedColormap.from_list("custom_gray", colors, N=100)
 
     # Apply the custom colormap with varying intensity
     contour = ax.contourf(X, Y, np.array(g_image_coarse), cmap=cmap, levels=256, alpha=0.7)
     cbar = plt.colorbar(contour)
     cbar.set_label(r'\LARGE g-value')
+
+    # Plot the obstacles and paths at the last point so that they are on top
+    plot_base_rings(params, ax, "black") # Plot obstacles in black
+    plot_A_star_homotopies_output_paths(params, ax) # Plot all the homotopy paths returned by A*
 
     ax.set_xlim(params['x_min'], params['x_max'])
     ax.set_ylim(params['y_min'], params['y_max'])

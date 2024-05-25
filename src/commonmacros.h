@@ -5,6 +5,7 @@
 
 #define BO_LOG 1 
 #define BO_UT 1
+#define BO_LATEX 1
 #define ASTCLCK 1 // Print statements measuring time for A-star execution
 // #define AST_UT 1    // Flag for A_star unit test
 // #define ASTDBG 1 // Debug flag to activate print statements 
