@@ -70,55 +70,33 @@ void boundary_optimization(
     const float scale_fact,   
     const int MAX_IT        
 ) {
-    // previous and current values of variable path metric (e.g. uncertainty), for each homotopy class
-    Backtrack_Path * var_prev [astar_args->max_hom_classes]; 
-    Backtrack_Path * var_curr [astar_args->max_hom_classes];   
-
-    // benchmark for the fixed path metric (e.g. length), and the varying current value, for each homotopy class
-    Backtrack_Path * fix_0    [astar_args->max_hom_classes];
-    Backtrack_Path * fix_curr [astar_args->max_hom_classes];  
-
-    // current main loop iteration
-    int curr_it = 0;            
-
-    /* First we set the fixed path metric benchmark by running A* with a pure cost function */
-    /** IMPORTANT: We faithfully assume that A* does not modify the config struct */
-    *(fix_config) = (1.0f / scale_fact);   // e.g. b = 1, a = 0 to initialize fixed and variable configuration parameters
+    // <metric_type> (iteration # -> (homotopy class -> Backtrack path *))
+    Backtrack_Path *** fix_met_vals = (Backtrack_Path ***) malloc((MAX_IT + 1) * sizeof(Backtrack_Path **));
+    Backtrack_Path *** var_met_vals = (Backtrack_Path ***) malloc((MAX_IT + 1) * sizeof(Backtrack_Path **));
+    // <config_type> (iteration # -> config value)
+    float * fix_config_vals = (float *) malloc((MAX_IT + 1) * sizeof(float));
+    float * var_config_vals = (float *) malloc((MAX_IT + 1) * sizeof(float));
+ 
+    // Initialize configuration parameters for iteration, and write them to the arrays 
+    int curr_it = 0; /** IMPORTANT: We will faithfully assume that A* does not modify the config struct */    
+    bool homotopy_classes_updated; // flag signaling whether any homotopic classes have been updated, thus whether further iterations are still needed
+    *(fix_config) = (1.0f / scale_fact);  // e.g. b = 1, a = 0 to initialize fixed and variable configuration parameters
     *(var_config) = 0.0f;
-
-    // Call A* with intial config to set the entries in target_hom_classes_ptr to the benchmarks for each homotopy class
-    A_star_homotopies(astar_args); 
-
-    // Now allocate all the pointers to paths within the arrays, holding tuple values corresponding to each sequential homotopy class in the benchmark list
-    hom_class_t * bench_it = (*(astar_args->target_hom_classes_ptr))->head;
-    int curr_index = 0;
-    while (bench_it != NULL) {
-
-        // Allocate path pointers for the current entries of the arrays
-        Backtrack_Path * var_prev_entry = var_prev [curr_index] = (Backtrack_Path *) malloc(sizeof(Backtrack_Path));
-        Backtrack_Path * var_curr_entry = var_curr [curr_index] = (Backtrack_Path *) malloc(sizeof(Backtrack_Path));
-        Backtrack_Path * fix_0_entry    = fix_0    [curr_index] = (Backtrack_Path *) malloc(sizeof(Backtrack_Path));
-        Backtrack_Path * fix_curr_entry = fix_curr [curr_index] = (Backtrack_Path *) malloc(sizeof(Backtrack_Path));
-
-        /* Now set attributes for each entry as desired, using the getters / setters to retrieve and modify the desired path attributes */
-
-        // Initialize the fixed path metric of both entries for current fixed value and fix_0 to the current benchmark ones
-        * (fix_path_met(fix_curr_entry)) = * (fix_path_met(fix_0_entry)) = * (fix_path_met(bench_it->backtrack));
-        // Initialize the previous value of the variable path metric at INFINTY, guaranteeing that the variable path metric decreases at first iteration
-        * (var_path_met(var_prev_entry)) = INFINITY;
-        // Initialize the current value of the variable path metric to the suboptimal value returned by the benchmark iteration
-        * (var_path_met(var_curr_entry)) = * (var_path_met(bench_it->backtrack));
-
-        // Slide forwards through the list of homotopy classes
-        curr_index++;
-        bench_it = bench_it->next;
-    }
-
-    /* Now we enter the main loop where we iteratively increase the variable configuration parameter's weight metric */
-    *(var_config) = (var_start / scale_fact);
-    bool homotopy_classes_updated = true; // flag signaling whether any homotopic classes have been updated, thus whether further iterations are still needed
+    int curr_hom_index;
     
     while (true) {
+
+        if (curr_it == 1) {
+            *(var_config) = (var_start / scale_fact);
+        }
+
+        // Update cnfiguration values for current iteration
+        fix_config_vals[curr_it] = *(fix_config);
+        var_config_vals[curr_it] = *(var_config);
+
+        // Allocate arrays of path pointers for each homotopy class of this iteration
+        fix_met_vals[curr_it] = (Backtrack_Path **) malloc((astar_args->max_hom_classes) * sizeof(Backtrack_Path *));
+        var_met_vals[curr_it] = (Backtrack_Path **) malloc((astar_args->max_hom_classes) * sizeof(Backtrack_Path *));
 
         /** NOTE: A_star_homotopies keeps intact the relative location of each homotopy class within the benchmark_hom_classes list,
          * and thus updates its corresponding values in place. Hence we can expect each homotopy class to be located constantly at the same array index. 
@@ -129,94 +107,71 @@ void boundary_optimization(
         
         // Update each homotopy class within the arrays with the update path metrics from A*
         hom_class_t * hom_class_it = (*(astar_args->target_hom_classes_ptr))->head;
-        curr_index = 0;
+        curr_hom_index = 0;
         homotopy_classes_updated = false; 
 
         while (hom_class_it != NULL) {
 
-            // Extract current entries for the current homotopy class
-            Backtrack_Path * var_prev_entry = var_prev [curr_index];
-            Backtrack_Path * var_curr_entry = var_curr [curr_index];
-            Backtrack_Path * fix_0_entry    = fix_0    [curr_index];
-            Backtrack_Path * fix_curr_entry = fix_curr [curr_index];
+            // Get currently unallocated entries for current iteration and homotopy class
+            Backtrack_Path ** fix_curr_entry_ptr = &(fix_met_vals[curr_it][curr_hom_index]);
+            Backtrack_Path ** var_curr_entry_ptr = &(var_met_vals[curr_it][curr_hom_index]);
 
-            /* First update current fixed an current variable path metrics with most recent updated values from A* */
-            * (fix_path_met(fix_curr_entry)) = * (fix_path_met(hom_class_it->backtrack)); 
-            * (var_path_met(var_curr_entry)) = * (var_path_met(hom_class_it->backtrack)); 
-        
-            /* Check that this homotopy class's fixed path metric is within bounds before proceeding */ 
-            if (* (fix_path_met(fix_curr_entry)) > (1.0f + bound) * (* (fix_path_met(fix_0_entry))) ) {
+            // Check that this homotopy class's fixed path metric is within benchmark bounds
+            if ((curr_it != 0) && // ensure that we skip the condition for the benchmark itself 
+                *(fix_path_met(hom_class_it->backtrack)) > (1.0f + bound) * (* (fix_path_met(fix_met_vals[0][curr_hom_index]))) ) 
+            {
                 #ifdef BO_LOG
                 printf(
                     "\nBoundary optimization: " 
-                    "skipping homotopy class (%.2f + %.2fi) / index %d"
+                    " skipping homotopy class (%.2f + %.2fi) / index %d, setting Backtrack_Path = NULL, "
                     " at iteration %d becuase the fixed path metric exceeded bounds, "
                     " with variable configuration parameter %.2f\n",
-                    creal(hom_class_it->Lval), cimag(hom_class_it->Lval), curr_index,
+                    creal(hom_class_it->Lval), cimag(hom_class_it->Lval), curr_hom_index,
                     curr_it, *(var_config)
                 );
                 #endif
 
+                // Set entries to NULL to show that the boundary condition was not satisfied, and skip over the allocations 
+                *fix_curr_entry_ptr = *var_curr_entry_ptr = NULL;
                 goto hom_class_inner_loop_end;  // continue to next iteration
             }
-            /* Checking for path convergence, which occurs when there is no change in variable path metric */
-            /** NOTE: currently skipping convergence check for diagnostic purposes
-            if ( * (var_path_met(var_curr_entry)) == * (var_path_met(var_prev_entry))) {
-                #ifdef BO_LOG
-                printf(
-                    "\nBoundary optimization converged " 
-                    "for homotopy class (%.2f + %.2fi) / index %d"
-                    " as variable path metric showed no improvement at iteration %d "
-                    " with variable configuration parameter %.2f\n",
-                    creal(hom_class_it->Lval), cimag(hom_class_it->Lval), curr_index,
-                    curr_it, *(var_config));
-                #endif
 
-                goto hom_class_inner_loop_end;  // continue to next iteration
-            }
-            */
-            /* If we get an increase in variable path metric, we print an unexpected output error message */
-            else if ( * (var_path_met(var_curr_entry)) > * (var_path_met(var_prev_entry))) {
-                #ifdef BO_LOG
-                printf(
-                    "\nBoundary optimization: " 
-                    "unexpected output for homotopy class (%.2f + %.2fi) / index %d" 
-                    " as variable path metric increased at iteration %d\n", 
-                    creal(hom_class_it->Lval), cimag(hom_class_it->Lval), curr_index, curr_it);
-                #endif
-            }
+            /** OPTIONAL: Check for path convergence or unexpected rise by comparing with previous values of variable path metric*/
 
-            /* End-of-loop routine */
-
+            // If the bound condition was passed, then allocate paths, and set them to their current values 
+            *fix_curr_entry_ptr = (Backtrack_Path *) malloc(sizeof(Backtrack_Path));
+            *var_curr_entry_ptr = (Backtrack_Path *) malloc(sizeof(Backtrack_Path));
+            *(fix_path_met(*fix_curr_entry_ptr)) = *(fix_path_met(hom_class_it->backtrack));  // benchmark for curr_hom_index = fix_met_vals[0][curr_hom_index] 
+            *(var_path_met(*var_curr_entry_ptr)) = *(var_path_met(hom_class_it->backtrack));
             homotopy_classes_updated = true;    // if we make it to here, flag an update in at least one homotopy class
-            * (var_path_met(var_prev_entry)) = * (var_path_met(var_curr_entry)); // update previous variable path measure
 
-            // Slide forwards
+            // End of loop: iterating to next homotopy class
             hom_class_inner_loop_end:
-            curr_index++;
+            curr_hom_index++;
             hom_class_it = hom_class_it->next;
         }
 
         /* End-of-loop routine: check two loop-break conditions */
-        if (!homotopy_classes_updated) {
-            #ifdef BO_LOG
-            printf("\nBoundary optimization terminated as no homotopy clases have been updated at iteration %d\n", curr_it);
-            #endif
-            break;
-        }
-        if (++curr_it >= MAX_IT) {
+        if (++curr_it > MAX_IT) {
             #ifdef BO_LOG
             printf("\nBoundary optimization terminated as max_it = %d was reached\n", MAX_IT);
             #endif
             break;
         }
 
+        if (!homotopy_classes_updated) {
+            #ifdef BO_LOG
+            printf("\nBoundary optimization terminated as no homotopy clases have been updated at iteration %d\n", curr_it);
+            #endif
+            break;
+        }
+        
         // Guarantees that A* is performed for the updated value 
         *(var_config) *= var_mult;  
     }
 
-    /* Here the main routine terminated, and we optionally log the output */
 
+    /* Main routine terminated: Logging and cleaning up simultaneously */
     #ifdef BO_LOG 
     printf(
         "\nboundary_optimization terminated with inputs:\n"
@@ -225,35 +180,74 @@ void boundary_optimization(
     );
     #endif
 
-    // Now iterate throughout all the homotopy classes and indices
-    hom_class_t * hom_class_it = (*(astar_args->target_hom_classes_ptr))->head;
-    curr_index = 0;
-    while (hom_class_it != NULL) {
 
-        #ifdef BO_LOG 
-        printf(
-            "\nBoundary optimization for homotopy class (%.2f + %.2fi) / index %d:\n"
-            "\tFinal minimized variable path metric value: %.2f\n"
-            "\twith final fixed path metric value of %.2f, and fixed path metric benchmark of %.2f\n"
-            "\twith cost function linear parameters fcp = %.2f, vcp = %.2f \n",
-        creal(hom_class_it->Lval), cimag(hom_class_it->Lval), curr_index,
-        * (var_path_met(var_curr [curr_index])), 
-        * (fix_path_met(fix_curr [curr_index])),
-        * (fix_path_met(fix_0    [curr_index])),
-        *(fix_config), *(var_config)
-        );
-        #endif 
+    /*
+    
+    printf("\\begin{table}[h!]\n");
+    printf("\\centering\n");
+    printf("\\begin{tabular}{|c|c|");
+    for (int j = 0; j < astar_args->max_hom_classes; j++) {
+        printf("c|c|"); // Two columns per homotopy class
+    }
+    printf("}\n\\hline\n");
+    printf("Iteration & Fixed Config & Variable Config ");
 
-        /*** NOTE: Here we clean-up the arrays, but if needed in the future we could potentially return some of these arrays. */
-        free(var_prev [curr_index]); 
-        free(var_curr [curr_index]); 
-        free(fix_0    [curr_index]); 
-        free(fix_curr [curr_index]);
+    for (int j = 0; j < astar_args->max_hom_classes; j++) {
+        printf("& Fixed Path Metric %d & Variable Path Metric %d ", j, j);
+    }
+    printf("\\\\ \\hline\n");
 
-        // Slide forward
-        curr_index++;
-        hom_class_it = hom_class_it->next;
-    }   
+    // Iterating over each iteration and each homotopy class
+    for (int it = 0; it < curr_it; it++) {
+
+        printf("%d & %.2f & %.2f", it, fix_config_vals[it], var_config_vals[it]);  // assuming pointers to floats for configs
+
+        for (int curr_hom_index = 0; curr_hom_index < astar_args->max_hom_classes; curr_hom_index++) {
+
+            // NULL-checks
+            
+
+            float fixed_metric    = *(fix_path_met(fix_met_vals[it][curr_hom_index]));
+            float variable_metric = *(var_path_met(var_met_vals[it][curr_hom_index]));
+            printf(" & %.2f & %.2f", fixed_metric, variable_metric);
+        }
+        printf("\\\\ \\hline\n");
+    }
+    printf("\\end{tabular}\n");
+    printf("\\caption{Summary of configurations and path metrics across iterations}\n");
+    printf("\\label{tab:metrics_summary}\n");
+    printf("\\end{table}\n");
+
+    */
+
+
+    /* Clean-up procedure */
+    for (int it = 0; it < curr_it; it++) {
+        hom_class_t * hom_class_it = (*(astar_args->target_hom_classes_ptr))->head;
+        curr_hom_index = 0;
+        while (hom_class_it != NULL) {
+            // Check that this Backtrack path was actually allocated 
+            if (fix_met_vals[it][curr_hom_index] != NULL) {
+                free(fix_met_vals[it][curr_hom_index]);
+            }
+            if (var_met_vals[it][curr_hom_index] != NULL) {
+                free(var_met_vals[it][curr_hom_index]);
+            }
+
+            // Slide forward
+            curr_hom_index++;
+            hom_class_it = hom_class_it->next;
+        }
+
+        free(fix_met_vals[it]);
+        free(var_met_vals[it]);
+    }
+
+    free(fix_met_vals);
+    free(var_met_vals);
+    free(fix_config_vals); 
+    free(var_config_vals);
+
 }
 
 
@@ -315,11 +309,13 @@ int main(int argc, char *argv[]) {
     hom_classes_list_t * target_hom_classes = NULL; 
 
     // Log the parsed parameters
+    #ifdef AST_HC_DBG
     printf(
         "Running boundary_optimization with inputs from command-line " 
         "bound = %f, var_mult = %f, MAX_IT = %d, max_expandible_states_mult = %d\n", 
         bound, var_mult, MAX_IT, max_expandible_states_mult
     ); 
+    #endif
 
     // Wrap up all the inputs into the struct
 

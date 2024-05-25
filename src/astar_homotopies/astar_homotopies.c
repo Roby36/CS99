@@ -288,7 +288,7 @@ void write_path(hom_class_t * hom_class, Config * config) {
         output_path_key_format, 
         config->a, config->b, creal(hom_class->Lval), cimag(hom_class->Lval)
     );
-    #ifdef PATH_WRITE_DBG
+    #ifdef AST_HC_DBG
     printf("Writing path to ./params.json file with key: %s\n", Lval_string);
     #endif
     write_json("./params.json", Lval_string, bt->point_list, bt->total_edges - 1, 2);
@@ -530,9 +530,10 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
         "\ta = %f, b = %f\n"
         "\tfloat tolerance = %f\n"
         "\tabsolute tolerance for homotopy classes: %f\n"
+        "\tMaximum homotopy classes: %d\n"
         "\tMaximum expandible states: %d\n\n",
     args->params->x_g, args->params->y_g, args->params->r, args->params->s, 
-    args->config->a, args->config->b, args->float_tol, args->abs_tol,
+    args->config->a, args->config->b, args->float_tol, args->abs_tol, args->max_hom_classes,
     max_expandible_states
     );
     #endif
@@ -616,8 +617,8 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
                 #ifdef AST_HC_DBG
                 char * hom_classes_str = complex_list_to_string(*(args->target_hom_classes_ptr));
                 printf(
-                    "A* filled %d homotopy classes with Lvalues \n\t%s.\nBreaking main loop...\n", 
-                    filled_hom_classes, hom_classes_str);
+                    "A* filled the maximum number %d of homotopy classes with Lvalues \n\t%s.\nBreaking main loop...\n", 
+                    args->max_hom_classes, hom_classes_str);
                 free(hom_classes_str);
                 #endif
                 break;
@@ -695,9 +696,8 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
         }
     }
 
-    // Add timestamp under general print statement
-    #ifdef ASTCLCK
-    CALCULATE_ELAPSED_TIME(start, end, elapsed);
+    // Add general print statement and timestamp
+    #ifdef AST_HC_DBG
     printf(
         "\nA* terminated with the inputs:\n"
         "\t(x_g, y_g) = (%f, %f)\n"
@@ -705,13 +705,21 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
         "\ta = %f, b = %f\n"
         "\tfloat tolerance = %f\n"
         "\tabsolute tolerance for homotopy classes: %f\n"
+        "\tMaximum homotopy classes: %d\n"
         "\tMaximum expandible states: %d\n"
         "\tTotal states expanded: %d\n"
-        "\tCurrent size of the open set (enqueued states): %d\n"
-        "\nTime elapsed since invoking A_star_homotopies:\n\t%.5f seconds\n\n",
+        "\tCurrent size of the open set (enqueued states): %d\n",
     args->params->x_g, args->params->y_g, args->params->r, args->params->s, 
-    args->config->a, args->config->b, args->float_tol, args->abs_tol,
-    max_expandible_states, expanded_states, open_set_size(open_set), elapsed
+    args->config->a, args->config->b, args->float_tol, args->abs_tol, args->max_hom_classes,
+    max_expandible_states, expanded_states, open_set_size(open_set) 
+    );
+    #endif
+    #ifdef ASTCLCK
+    CALCULATE_ELAPSED_TIME(start, end, elapsed);
+    printf(
+        "\nTime elapsed since invoking A_star_homotopies until end of execution:\n"
+        "\t%.5f seconds\n\n", 
+        elapsed
     );
     #endif
 
