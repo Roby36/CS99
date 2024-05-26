@@ -9,27 +9,27 @@
 #include "obstacle_marker.h"
 #include "hom_classes.h"
 
-/* Keep configuration parameters in a wrappable, versatile way */
+/*** Configuration parameters wrapper ***/
 typedef struct {
     float a;
     float b;
 } Config;
 
-/* Standard cost function */
+/*** Default cost function ***/
 float edge_cost(
     int x_1, int y_1, int x_2, int y_2,
     Params * params,
     Config * config
 );
 
-/* Standard heuristic function */
+/*** Single homotopy class heuristic ***/
 float heuristic(
     int x_n, int y_n, int x_g, int y_g,
     Params * params,
     Config * config
 );
 
-/* Zero heuristic function for homotopy graph searches */
+/*** Multiple homotopy class heuristic (Dijkstra's) ***/
 float zero_heuristic(
     int x_n, int y_n, int x_g, int y_g,
     Params * params,

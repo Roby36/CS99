@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "stdbool.h": "c",
-        "sstream": "c"
+        "sstream": "c",
+        "__bit_reference": "c",
+        "__split_buffer": "c",
+        "string": "c",
+        "vector": "c"
     }
 }

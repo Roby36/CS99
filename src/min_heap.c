@@ -227,31 +227,55 @@ void decrease_key(open_set_t *set, minheap_node *node, float new_key) {
 }
 
 
-/* Simple getters */
+/************ remove_from_heap *************
+ * 
+ * This function is used to remove an arbitrary element from the 
+ * min heap by providing its pointer. 
+ * 
+ * It mainly involves swapping the element with the last, and then
+ * percolating up if the key of the parent is greater, else 
+ * percolating down to fix the lower part of the heap.
+ * 
+ */
+void remove_from_open_set(open_set_t *set, minheap_node *node) {
+    if (node == NULL) return;
+    
+    int index = node->index;
+    
+    // Swap the node to be removed with the last node
+    swap(&set->nodes[index], &set->nodes[set->size]);
+    
+    // Reduce the size of the heap
+    set->size--;
 
+    // Free the original node
+    set->accessor.set_minheap_node(node->generic, NULL); // Mark the data as not in the heap
+    free(node);
+
+    // Check if we are not out of bounds after decrementing size
+    if (index > set->size) return;
+
+    // Now, restore the heap property by potentially bubbling down or up
+    if (index > 1 && set->nodes[index]->key < set->nodes[index / 2]->key) {
+        // Bubble up if the new node's key is less than its parent's key
+        bubble_up(set, index);
+    } else {
+        // Otherwise, min_heapify at the current index
+        min_heapify(set, index);
+    }
+}
+
+
+/* getters */
 bool open_set_is_empty(open_set_t *set) {
     return set->size == 0;
 }
-
 int open_set_size(open_set_t * set) {
     return (set->size);
 }
 
 
 /* Define down here the underlying getters and setters for the supported types (could also be defined outside of the file) */
-
-/** NOTE: 
- * These methods are disabled because we undefined these elements for vertex structs 
- * since they are currently held by the homotopy classes strcuts 
-
-float vertex_get_f_score (void * vertex) {
-    return ((vertex_t *) vertex)->f_score;
-}
-void vertex_set_minheap_node (void * vertex, minheap_node * minheap_node) {
-    ((vertex_t *) vertex)->minheap_node = minheap_node;
-}
-*/
-
 
 float hom_class_get_f_score (void * hom_class) {
     return ((hom_class_t *) hom_class)->f_score;
@@ -268,9 +292,9 @@ void hom_class_set_minheap_node (void * hom_class, minheap_node * minheap_node) 
 void print_open_set(open_set_t *set) {
     printf("Open Set contains %d elements:\n", set->size);
     for (int i = 1; i <= set->size; i++) {
-        vertex_t *v = set->nodes[i]->generic;
-        printf("Index %d: Vertex(%d, %d) [g_score: %.2f, f_score: %.2f, key: %.2f]\n", 
-            i, v->x_s, v->y_s, v->g_score, v->f_score, set->nodes[i]->key);
+        hom_class_t *v = set->nodes[i]->generic;
+        printf("Index %d: hom_class [g_score: %.2f, f_score: %.2f, key: %.2f]\n", 
+            i, v->g_score, v->f_score, set->nodes[i]->key);
     }
 }
 
@@ -278,10 +302,8 @@ void open_set_testing() {
     // Creating test vertices
     int num_vertices = 15;
 
-    vertex_t vertices[num_vertices];
+    hom_class_t vertices[num_vertices];
     for (int i = 0; i < num_vertices; i++) {
-        vertices[i].x_s = i;
-        vertices[i].y_s = i;
         vertices[i].g_score = i * 2.0;
         vertices[i].f_score = i * 2.5;
         vertices[i].is_evaluated = false;
@@ -291,8 +313,8 @@ void open_set_testing() {
 
     // Create the open set
     open_set_t *set = open_set_new(
-        vertex_get_f_score,
-        vertex_set_minheap_node
+        hom_class_get_f_score,
+        hom_class_set_minheap_node
     );
 
     // Insert vertices into the open set and print the state
@@ -302,18 +324,42 @@ void open_set_testing() {
         print_open_set(set);
     }
 
-    // Testing decrease key
-    int vertex_number = num_vertices - 3;
-    printf("\nDecreasing key for vertex %d with %f f_score:\n", vertex_number, vertices[vertex_number].f_score);
-    vertices[vertex_number].f_score = 0.1; // Update the f_score
-    decrease_key(set, vertices[vertex_number].minheap_node, vertices[vertex_number].f_score);
+    // Testing remove_from_heap
+    int vertex_number = num_vertices - 6;
+    printf("\nRemoving from heap vertex at index %d with %f f_score:\n", vertices[vertex_number].minheap_node->index, vertices[vertex_number].f_score);
+    remove_from_heap(set, vertices[vertex_number].minheap_node);
     print_open_set(set);
+
+    // Testing remove_from_heap
+    vertex_number = num_vertices - 8;
+    printf("\nRemoving from heap vertex at index %d with %f f_score:\n", vertices[vertex_number].minheap_node->index, vertices[vertex_number].f_score);
+    remove_from_heap(set, vertices[vertex_number].minheap_node);
+    print_open_set(set);
+
+    // Testing remove_from_heap
+    vertex_number = 2;
+    printf("\nRemoving from heap vertex at index %d with %f f_score:\n", vertices[vertex_number].minheap_node->index, vertices[vertex_number].f_score);
+    remove_from_heap(set, vertices[vertex_number].minheap_node);
+    print_open_set(set);
+
+    // Testing remove_from_heap
+    vertex_number = 5;
+    printf("\nRemoving from heap vertex at index %d with %f f_score:\n", vertices[vertex_number].minheap_node->index, vertices[vertex_number].f_score);
+    remove_from_heap(set, vertices[vertex_number].minheap_node);
+    print_open_set(set);
+
+    // Testing remove_from_heap
+    vertex_number = 0;
+    printf("\nRemoving from heap vertex at index %d with %f f_score:\n", vertices[vertex_number].minheap_node->index, vertices[vertex_number].f_score);
+    remove_from_heap(set, vertices[vertex_number].minheap_node);
+    print_open_set(set);
+
 
     // Dequeue elements and print
     printf("\nDequeuing elements:\n");
     while (!open_set_is_empty(set)) {
-        vertex_t *min_vertex = dequeue_min(set);
-        printf("Dequeued Vertex(%d, %d) with final f_score: %.2f\n", min_vertex->x_s, min_vertex->y_s, min_vertex->f_score);
+        hom_class_t *min_vertex = dequeue_min(set);
+        printf("Dequeued hom_class with final f_score: %.2f\n", min_vertex->f_score);
         print_open_set(set);
     }
 

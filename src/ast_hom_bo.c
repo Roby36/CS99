@@ -18,6 +18,9 @@ float * path_length_getter(Backtrack_Path * bt) {
     return length_ptr;
 }
 
+/* Function to output LaTex table of results */
+void print_LaTex_table(struct A_star_homotopies_args * astar_args);
+
 /*************** boundary_optimization *********************
  * 
  * This function sets one of the two linear coefficients a,b of the cost function,
@@ -262,28 +265,6 @@ void boundary_optimization(
     printf("\n\n---------------- LATEX TABLES END ----------------\n\n");
     #endif
 
-
-    
-
-    /* SAMPLE OUTPUT:
-
-        \begin{table}[h!]
-        \centering
-        \begin{tabularx}{\textwidth}{|X|X|X|X|X|X|X|X|X|}
-        \hline
-        \textbf{It.} & \textbf{f.c.} & \textbf{v.c.} & \multicolumn{2}{c|}{\textbf{-19.80 -61.57i}} & \multicolumn{2}{c|}{\textbf{0.17 + 1.69i}} & \multicolumn{2}{c|}{\textbf{0.17 + 7.98i}} \\ \cline{4-9}
-        & & & \textbf{f.p.m.} & \textbf{v.p.m.} & \textbf{f.p.m.} & \textbf{v.p.m.} & \textbf{f.p.m.} & \textbf{v.p.m.} \\ \hline
-        0 & 1.00 & 0.00 & 55.16 & 22.64 & 55.54 & 31.46 & 61.26 & 34.35 \\ \hline
-        1 & 1.00 & 0.01 & 55.16 & 21.44 & 55.54 & 22.38 & 61.26 & 24.48 \\ \hline
-        2 & 1.00 & 0.04 & 55.16 & 21.44 & 55.54 & 22.38 & 61.26 & 24.48 \\ \hline
-        3 & 1.00 & 0.16 & 55.16 & 21.44 & 55.54 & 22.38 & 61.26 & 24.48 \\ \hline
-        4 & 1.00 & 0.64 & 55.16 & 21.44 & 55.54 & 22.38 & 61.26 & 24.48 \\ \hline
-        \end{tabularx}
-        \caption{Summary of configurations and path metrics across iterations}
-        \label{tab:metrics_summary}
-        \end{table}
-
-    */
     
     /* Clean-up procedure */
     for (int it = 0; it < curr_it; it++) {
@@ -321,17 +302,18 @@ int main(int argc, char *argv[]) {
 
     /* Hard-coded constants */
     const float float_tol = 0.05;
-    const double abs_tol = 1.0;
+    const double abs_tol = 0.1;
     const float var_start = 0.01;
     const float scale_fact = 1.0f;
   
     /* Inputs initialized from the command line */
     char * input_json_path;
+    int max_expandible_states_mult = 0;
+    int max_hom_classes = 0;
     float bound = 0.0f;
     float var_mult = 0.0f;
     int MAX_IT = 0;
-    int max_expandible_states_mult = 0;
-    int max_hom_classes = 0;
+    
 
     /* Local variables for A* */
     Params * params;
@@ -371,8 +353,8 @@ int main(int argc, char *argv[]) {
     #ifdef AST_HC_DBG
     printf(
         "Running boundary_optimization with inputs from command-line " 
-        "bound = %f, var_mult = %f, MAX_IT = %d, max_expandible_states_mult = %d\n", 
-        bound, var_mult, MAX_IT, max_expandible_states_mult
+        "bound = %f, var_mult = %f, MAX_IT = %d, max_expandible_states_mult = %d, max_hom_classes = %d\n", 
+        bound, var_mult, MAX_IT, max_expandible_states_mult, max_hom_classes
     ); 
     #endif
 
@@ -419,6 +401,5 @@ int main(int argc, char *argv[]) {
 }
 
 #endif
-
 
 

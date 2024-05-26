@@ -1,6 +1,6 @@
 astar
 .DS_Store
-executables/
+bin/
 bo_hom_test2/
 bo_hom_test3/
 
