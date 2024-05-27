@@ -149,8 +149,8 @@ int extract_int(cJSON *json, char *key) {
  *       the only sections of the code requiring an update are this function's definition,
  *       and the struct Params definition in utils.h
  * 
- *       The caller is responsible for later free'ing the Params struct returned, including the 
- *       more laborious 2-dimensional matrix deallocations.
+ *       The caller is responsible for later free'ing the Params struct returned
+ *       by calling free_params
  */
 Params * load_json(const char * file_name) {
 
@@ -197,9 +197,31 @@ Params * load_json(const char * file_name) {
     params->elliptical_obstacles = extract_float_matrix(json,  "elliptical_obstacles");
     
     // Clean-up
+    cJSON_Delete(json);
     free(copy_str); 
 
     return params;
+}
+
+/************** free_params ********************
+ * 
+ * IMPORTANT: Must be called by the caller after 
+ * allocating the params struct when calling load_json,
+ * in order to properly deallocate the struct 
+*/
+void free_params(Params * params) {
+
+    free_float_matrix(
+        params->g_image,
+        calculate_steps(params->y_min, params->y_max, params->r),
+        calculate_steps(params->x_min, params->x_max, params->r)
+    ); 
+    free_float_matrix(
+        params->elliptical_obstacles,
+        params->num_obstacles,
+        params->num_obstacle_parameters
+    );
+    free(params);
 }
 
 /************* store_file *************
@@ -357,7 +379,7 @@ int main(){
         return 1;
     }
 
-    // Testing:
+    // Example usage of params struct
     Params * params = load_json(input_json);
     // write test matrix to same .json file
     write_json( 
@@ -367,11 +389,7 @@ int main(){
     );
 
     // Clean up
-    free_float_matrix(
-        params->g_image,
-        calculate_steps(params->y_min, params->y_max, params->r),
-        calculate_steps(params->x_min, params->x_max, params->r)
-    ); 
+    free_params(params);
 
     fclose(dfp);
 

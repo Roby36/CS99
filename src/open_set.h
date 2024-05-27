@@ -7,9 +7,7 @@
 #include <math.h>
 #include <time.h>
 
-#include "hom_vertex.h" // only for unit testing purposes
 #include "hom_classes.h"
-#include "commonmacros.h"
 
 /* Opaque types */
 typedef struct open_set open_set_t;  

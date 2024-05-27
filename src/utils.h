@@ -34,24 +34,35 @@ typedef double complex Complex;
 } while(0)
 
 // Macro to parse a float from a string
-#define PARSE_FLOAT(str, var, idx) \
+#define PARSE_FLOAT(str, var) \
     do { \
         char* endptr; \
         (var) = strtod((str), &endptr); \
         if (*endptr != '\0') { \
-            fprintf(stderr, "Invalid float: %s at arg %d\n", (str), (idx)); \
+            fprintf(stderr, "Invalid float for parameter %s at arg %s\n", #var, (str)); \
             return 1; \
         } \
 } while (0)
 
 // Macro to parse an integer from a string
-#define PARSE_INT(str, var, idx) \
+#define PARSE_INT(str, var) \
     do { \
         if (sscanf((str), "%d", &(var)) != 1) { \
-            fprintf(stderr, "Invalid integer for parameter %s at arg %d: %s\n", #var, (idx), (str)); \
+            fprintf(stderr, "Invalid integer for parameter %s at arg %s\n", #var, (str)); \
             return 1; \
         } \
 } while (0)
+
+// Macro to parse and allocate string from command line
+#define PARSE_STRING(target, source, var_name) \
+    do { \
+        (target) = (char *) malloc(strlen(source) + 1); \
+        if ((target) == NULL) { \
+            fprintf(stderr, "Memory for <%s> string allocation failed\n", (var_name)); \
+            return 1; \
+        } \
+        strcpy((target), (source)); \
+    } while (0)
 
 /*********** Params *************
  * Main struct holding all parameters extracted from .json file,
@@ -83,6 +94,12 @@ typedef struct {
     float ** g_image;
 
 } Params;
+
+/**** Configuration parameters wrapper ****/
+typedef struct {
+    float a;
+    float b;
+} Config;
 
 /********* inline utility functions **********/
 

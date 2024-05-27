@@ -17,4 +17,5 @@
 // #define LVALCLCK 1
 // #define LOOP_DBG 1
 // #define AST_HC_DBG 1
+// #define HCSL_UT
 

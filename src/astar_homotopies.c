@@ -1,334 +1,6 @@
 
 #include "astar_homotopies.h"
 
-/* Name of parameter containing path written to .json file */
-const char * output_path_key_format = "a=%.2f, b=%.2f, L=(%.2f + %.2fi)";
-
-/****************** cost / heuristic function implementations ****************+*/
-
-/****** len ******
- * 
- * This function calculates the absolute value, relative to the map, of the distance between two arbitrary grid coordinates.
- * 
- * Inputs:
- *      Two discrete, adjacent points (x_1,y_1) and (x_2,y_2), in the s-step sized state grid for the robot
- *      Params struct containing the scaling factor s for the grid
- * Outputs:
- *      the resulting float-valued distance between (x_1,y_1) and (x_2,y_2), in map (not grid) units
- * 
- * This function will be applied on a series of adjacent points to calculate path lenths,
- * which will contribute to the path length linear component of the overall cost function (b-coefficient)
-*/
-static inline float len(
-    int x_1, int y_1, int x_2, int y_2,
-    Params * params) 
-{
-    return (params->s * D_ADJACENT(x_1, y_1, x_2, y_2)); // Use s as scaling factor
-}
-
-/****** g_image_riemann_sum ******
- * 
- * This function computes the Riemann sum, according to the (uncertainty) function g, 
- * between two arbitrary adjacent points (x_1,y_1) and (x_2,y_2), in the s-step sized state grid for the robot
- * 
- * Inupts:
- *      Two discrete, adjacent points (x_1,y_1) and (x_2,y_2), in the s-step sized state grid for the robot
- *      Params struct containing: 
- *          - scaling factors s and r for the grid and function g respectively
- *          - g_image containing the pre-computed values for g at r-steps resolution, stored in a 2-dimensional matrix
- *          - bounds xr_steps, yr_steps of the matrix containing g_image
- * 
- * Output:
- *      The contribution of taking a path integral of g, between (x_1,y_1) and (x_2,y_2), scaled to map units.
- * 
- * This function will be applied on a series of adjacent points in the domain of g to calculate path integrals numerically,
- * which will contribute to the uncertainty accumulation linear component of the overall cost function (a-coefficient)    
- */
-static inline float g_image_riemann_sum(
-    int x_1, int y_1, int x_2, int y_2,
-    Params * params) 
-{
-    // Determine what dimensions changed
-    int dx = (x_1 != x_2);
-    int dy = (y_1 != y_2);
-    // Scale up the discrete s-relative coordinates to the corresponding r-relative indices of g_image
-    int x_0 = (params->s_div_r) * x_1;
-    int y_0 = (params->s_div_r) * y_1;
-
-    // Now compute the sum of the function at all the (s/r) steps
-    float rs = 0.0f;
-    for (int i = 0; i < params->s_div_r; i++) {
-        /** ensure that we are not accessing g_image out of bounds */
-        int y = y_0 + (i * dy);
-        int x = x_0 + (i * dx);
-        if (x < 0 || x >= params->xr_steps || y < 0 || y >= params->yr_steps) {
-            #ifdef ASTDBG
-            DEBUG_ERROR("Attempt to access g_image matrix out of bounds");
-            #endif
-            continue; // skip iteration
-        }
-        rs += params->g_image[y][x];
-    }
-    // Multiply by the average lengh of each r-step to get the uncertainty accumulated 
-    float u = params->r * D_ADJACENT(x_1, y_1, x_2, y_2) * rs;
-
-    return u;
-}
-
-/****** edge_cost ******
- * 
- * This is the resulting cost function combining linearly uncertainty accumulation and path lenth,
- * which are computed by g_image_riemann_sum and len respectively
- * 
- * Inputs:
- *      Two discrete, adjacent points (x_1,y_1) and (x_2,y_2), in the s-step sized state grid for the robot
- *      Params struct containing the fixed environment parameters, passed as input for
- *          - g_image_riemann_sum
- *          - len
- *      Config struct containing the relative weights a and b for uncertainty accumulation and path length accordingly
- * 
- * Output:
- *      The resulting cost between the points (x_1,y_1) and (x_2,y_2) in the grid. Note that this is expressed in map units (floats)
- * 
- * This function will be passed as input for the A* search algorithm, serving as the main cost function for the graph search. 
- */
-float edge_cost(
-    int x_1, int y_1, int x_2, int y_2,
-    Params * params,
-    Config * config) 
-{
-    float u = g_image_riemann_sum(x_1, y_1, x_2, y_2, params); // uncertainty accumulation
-    float l = len(x_1, y_1, x_2, y_2, params);  // path length
-
-    // Finally take a linear combination using the fixed parameters a,b
-    float c = (config->a * u) + (config->b * l);
-    return c;
-}
-
-
-/****** heuristic ******
- * 
- * This is the main heuristic used for the basic (not homotopy class) version of A*.
- * It consists in aiming towards the goal as fast as possible, firstly by exploiting 
- * all the faster diagonal transitions available, and then finishing with the remaining straight ones.
- * For each step, we cancel the Riemann sum factor of the cost function, thereby guaranteeing
- * admissibility and swifter computation. 
- * 
- * Inputs:
- *      current point on the grid (x_n, y_n), and goal point (x_g, y_g)
- *      Config struct holding b coefficient of the cost function (the coefficient determining the weight for path length) 
- *      Params struct holding scaling factor s for the grid
- * 
- * Outputs:
- *      Resulting value of the heuristic between (x_n, y_n) and (x_g, y_g), 
- *          guaranteed to be lower than the lower cost path between the two points
- * 
- * This function is passed as parameter to the A* search algorithm, when this is merely looking for 
- * the lowest cost path (not the more general version keeping track of all the homotopy classes). The tightness of this
- * heuristic significantly accelerates the graph search procedure towards the goal
- */
-float heuristic(
-    int x_n, int y_n, int x_g, int y_g,
-    Params * params,
-    Config * config) 
-{
-    // First determine the total steps in the x and y directions
-    int dx = abs(x_g - x_n);
-    int dy = abs(y_g - y_n);
-    // Then we take as many steps possible diagonally, and the rest in the remaining straight line
-    float l = params->s * ((SQRT2 - 1) * MIN(dx,dy) + MAX(dx, dy)); // each step is also of size s
-    // We multiply by the parameter b to ensure a tight heuristic compared to the cost function defined above
-    float h = config->b * l;
-    return h;
-}
-
-/****** zero_heuristic ******
- * 
- * This is a trivial zero heuristic, used to turn A* into Dijkstra's algorithm in the case where
- * we are concerned in keeping track of all the possible homotopy classes.
- * In that case, we want to guarantee as much uniform and unbiased coverage as possible of the environment.
- * 
- * The dummy arguments make the function signature conform to the A* algorithm main function, 
- * thereby making the function reusable with different heuristic
- */
-float zero_heuristic(
-    int x_n, int y_n, int x_g, int y_g,
-    Params * params,
-    Config * config)
-{
-    return 0.0f;
-}
-
-
-/************ A_star_homotopies static helper functions *************/
-
-/****** expand_backtrack *******
- * 
- * This function uses the information stored within the hom_class_t by the A* procedure
- * to carefully backtrack and allocate the path of the homotopy class. It is convenient because
- * it allows us to arbitrarily determine when a path is worth allocating and expanding at any time
- * we want to do so, by just using lightweight information stored in the homotopy class struct.
- * 
- * Inputs:
- *      Params struct for the given environment
- *      homotopy class struct pointer for which we want to expand and store the path
- * 
- * Outputs:
- *      The nested struct member hom_class->backtrack is updated with all the information on the path
- * 
- * NOTE: Caller must then call the corresponding clean-up function free_backtrack 
- *       which carefully free's all the memory malloc'd by this function
- * 
-*/
-void expand_backtrack(Params *params, hom_class_t * hom_class) {
-    
-    int edge_number     = 0;       // number of discrete edges
-    float abs_len_cumul = 0.0f;    // cumulative length of path, scaled up
-    float riem_cumul    = 0.0f;    // cumulative rieamnn sum for g_image buildup, scaled up
-    int x_curr, y_curr;            // backtracking coordinates
-    int x_next, y_next;         
-
-    // First, find the length of the path by traversing from goal to start
-    hom_class_t * curr_hom_class = hom_class;
-    while (curr_hom_class != NULL) {
-        edge_number++;
-        curr_hom_class = curr_hom_class->parent;
-    }
-
-    // Allocate backtracking path structure from here 
-    if (hom_class->backtrack == NULL) {
-        hom_class->backtrack = (Backtrack_Path *) malloc (sizeof(Backtrack_Path));
-    }
-
-    Backtrack_Path * bt = hom_class->backtrack;
-
-    // Set length for path struct
-    bt->total_edges = edge_number;
-
-    // Allocate memory for the points list
-    bt->point_list = malloc(sizeof(float *) * edge_number);
-    for (int i = 0; i < edge_number; i++) {
-        bt->point_list[i] = malloc(sizeof(float) * 2); // Each point has two coordinates (x, y)
-        if (!bt->point_list[i]) {
-            fprintf(stderr, "Memory allocation failed for point_list[%d].\n", i);
-            return;
-        }
-    }
-
-    // Backtrack from goal to start and store the path in reverse
-    curr_hom_class = hom_class;
-    for (int i = edge_number - 1; i >= 0; i--) {
-
-        // Extract coordinates from current vertex and parent if there is one
-        x_curr = x_next = curr_hom_class->endpoint_vertex->x_s;
-        y_curr = y_next = curr_hom_class->endpoint_vertex->y_s;
-        if (curr_hom_class->parent != NULL) {
-            x_next = curr_hom_class->parent->endpoint_vertex->x_s;
-            y_next = curr_hom_class->parent->endpoint_vertex->y_s;
-        }
-
-        // Re-compute length and Riemann sum as they were originally computed, this time without the constants a,b
-        abs_len_cumul  +=                 len(x_next, y_next, x_curr, y_curr, params);
-        riem_cumul     += g_image_riemann_sum(x_next, y_next, x_curr, y_curr, params);
-
-        // Record points in the array containing the path
-        bt->point_list[i][0] = params->x_min + (x_curr * params->s); // Convert x_s back to x
-        bt->point_list[i][1] = params->y_min + (y_curr * params->s); // Convert y_s back to y
-
-        #ifdef ASTDBG
-        printf("Backtracking path point[%d]: (%.2f, %.2f)\n", i, bt->point_list[i][0], bt->point_list[i][1]);
-        #endif
-
-        curr_hom_class = curr_hom_class->parent;    // iterate backwards through vertices on optimal path
-    }
-
-    // Set elements for the path
-    bt->g_image_riemann_tot = riem_cumul;
-    bt->absolute_length     = abs_len_cumul;
-
-}
-
-/****** write_path *******
- * 
- * This function writes the points of the output path corresponding to some 
- * cost coefficients a,b and homotopy class to the .json output file,
- * so that it can be parsed and rendered by graphing software (i.e. matplotlib)
- * 
- * Inputs:
- *      homotopy class object containing the path
- *      config struct containing a,b coefficients for cost function on which path was evaluated
- * 
- * Outputs:
- *      Path points written out as a matrix to ./params.json file (name hardcoded)
- * 
- * NOTE: The caller must first invoke expand_backtrack(params, hom_class)
- *       to ensure that the backtrack path is both computed and stored in hom_class->backtrack,
- *       and, preferably, invoke write_path before free_backtrack which deletes the path
- * 
- * Usage example:
- * 
- *  expand_backtrack(params, hom_class);
- *  // do something with the path
- *  write_path(hom_class, config);
- *  // do something with the path
- *  free_backtrack(hom_class);
- * 
- */
-void write_path(hom_class_t * hom_class, Config * config) {
-
-    Backtrack_Path * bt = hom_class->backtrack;
-    if (bt == NULL) return;
-    const int str_size = 256;
-    char * Lval_string = (char*) malloc(str_size);
-
-    // Format the entry for the path in the output .json file
-    snprintf(
-        Lval_string, str_size, 
-        output_path_key_format, 
-        config->a, config->b, creal(hom_class->Lval), cimag(hom_class->Lval)
-    );
-    #ifdef AST_HC_DBG
-    printf("Writing path to ./params.json file with key: %s\n", Lval_string);
-    #endif
-    write_json("./params.json", Lval_string, bt->point_list, bt->total_edges - 1, 2);
-    free(Lval_string);
-}
-
-/****** free_backtrack ******
- * 
- * The corresponding clean-up routine to expand_backtrack.
- * 
- * Inputs:
- *      homotopy class struct whose backtrack data member we want to free
- * 
- * Outputs:
- *      The function carefully deallocates all the memory taken up by
- *      hom_class->backtrack 
-*/
-void free_backtrack(hom_class_t * hom_class) {
-
-    Backtrack_Path * bt = hom_class->backtrack;
-
-    // Verify that both path struct and internal point list are accessible 
-    if (bt == NULL || bt->point_list == NULL || bt->total_edges == 0) {
-        DEBUG_ERROR("free_point_array: opt_path = NULL OR opt_path->point_list = NULL OR opt_path->l = 0");
-        return;
-    }
-
-    // Edge iteration through array
-    for (int i = 0; i < bt->total_edges; i++) {
-        // Verify that we are actually free'ing
-        if (bt->point_list[i] == NULL) {
-            DEBUG_ERROR("free_point_array: unexpected NULL value for opt_path->point_list[i]");
-        }
-        // Free the point
-        free(bt->point_list[i]);
-    }
-
-    // Finally, free the backtrack structure pointer itself
-    free(bt); 
-}
-
 
 /****************** Main A* algorithm implementation **************************/
 
@@ -361,8 +33,11 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
     );
     #endif
 
-    // Flag current target homotopy classes as not updated by this run
-    if (*(args->target_hom_classes_ptr) != NULL) {
+    // Determine if this will be an initialization run
+    const bool target_hom_classes_init = (*(args->target_hom_classes_ptr) == NULL);
+
+    // Flag current target homotopy classes as not updated
+    if (!target_hom_classes_init) {
         unflag_homotopy_classes(*(args->target_hom_classes_ptr));
     }
 
@@ -376,65 +51,28 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
     const int x_goal_step  = (int) (args->params->x_g - args->params->x_min) / args->params->s;
     const int y_start_step = (int) (args->params->y_s - args->params->y_min) / args->params->s;
     const int y_goal_step  = (int) (args->params->y_g - args->params->y_min) / args->params->s;
+
     // Abort A* if we find start/goal to be inaccessible
     if (!is_accessible(args->params, x_start_step, y_start_step, args->float_tol) ||
         !is_accessible(args->params, x_goal_step,  y_goal_step,  args->float_tol)) {
-            DEBUG_ERROR("start or goal state not accessible, A* aborted");
-            return;
-    }    
-
-    /** SUBROUTINE: Here we initialize the vertices, with empty lists of homotopy classes */
-    hom_vertex_t *** S = malloc(args->params->ys_steps * sizeof(hom_vertex_t **));  // row pointers
-    if (!S) {
-        fprintf(stderr, "Failed to allocate memory for grid rows.\n");
+        DEBUG_ERROR("start or goal state not accessible, A* aborted");
         return;
     }
-    for (int ys = 0; ys < args->params->ys_steps; ys++) {
-        S[ys] = (hom_vertex_t **) malloc(args->params->xs_steps * sizeof(hom_vertex_t *)); // allocate column
-        if (!S[ys]) {
-            fprintf(stderr, "Failed to allocate memory for grid columns at row %d.\n", ys);
-            // Free previously allocated memory before exiting
-            for (int j = 0; j < ys; j++) {
-                free(S[j]);
-            }
-            free(S);
-            return;
-        }
-        for (int xs = 0; xs < args->params->xs_steps; xs++) {
-            /** VERTEX_INITIALIZATION: **/
-            hom_vertex_t * new_vertex = malloc(sizeof(hom_vertex_t));
-            new_vertex->x_s = xs;
-            new_vertex->y_s = ys;
-            new_vertex->hom_classes = hom_classes_list_new(
-                args->max_hom_classes,  // limit each vertex in the grid to the desired maximum homotopy classes
-                g_score_compare         // use g-score as comparator to select homotopy classes represented per vertex
-            ); // intialize empty list of Lvalues for each vertex
-            S[ys][xs] = new_vertex; // Save malloc'd vertex to grid matrix
-        }
-    }
 
-    // initialize start vertex AND start homotopy class 
+    // Initialize vertices to default values (see hom_classes.c)
+    hom_vertex_t *** S = allocate_grid(args);
+
+    // initialize start homotopy class
     hom_vertex_t * start_vertex = S[y_start_step][x_start_step];
-    hom_class_t * start_hom_class = (hom_class_t *) malloc(sizeof(hom_class_t));
-    start_hom_class->Lval = CMPLX(0.0, 0.0);
-    start_hom_class->next = NULL;   
-    start_hom_class->updated = true; // new homotopy class contructed in this run of A*
-    start_hom_class->parent = NULL;
+    hom_class_t * start_hom_class = hom_class_new(start_vertex, CMPLX(0.0, 0.0));
     start_hom_class->g_score = 0.0f;
     start_hom_class->f_score = args->h(
         x_start_step, y_start_step, x_goal_step, y_goal_step, args->params, args->config
     );
-    start_hom_class->is_evaluated = false;
-    start_hom_class->endpoint_vertex = start_vertex;
-    start_hom_class->minheap_node = NULL;
-    start_hom_class->backtrack = NULL;
-    insert_hom_class(start_vertex->hom_classes, start_hom_class, args->abs_tol); // assume the start homotopy class qualifies 
+    hom_class_t * dummy_ptr;    // assume the start homotopy class trivially qualifies 
+    insert_hom_class_sorted(start_vertex->hom_classes, start_hom_class, args->abs_tol, &dummy_ptr); 
 
-    // Initialize list of target homotopy classes, if necessary, to the pointer to the list of the goal vertex 
-    if (*(args->target_hom_classes_ptr) == NULL) {    
-        *(args->target_hom_classes_ptr) = S[y_goal_step][x_goal_step]->hom_classes;
-    }
-
+    // initialize priority queue 
     open_set_t * open_set = open_set_new(
         hom_class_get_f_score,  // accessors for homotopy class
         hom_class_set_minheap_node
@@ -462,28 +100,9 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
         // Goal state subroutine
         if ((x_c == x_goal_step && y_c == y_goal_step))
         {      
-            #ifdef ASTDBG
-            printf(
-                "Goal reached at (%d, %d) from L-value (%.2f + %.2fi) with total path cost (g_score): %f\n", 
-                x_c, y_c, creal(hom_class->Lval), cimag(hom_class->Lval), hom_class->g_score
-            );
-            #endif
-
+            // expand, write to .json and log discovered path 
             expand_backtrack(args->params, curr_hom_class);
-
-            /** NOTE: Since hom classes are dequeued only once, if dequeued here, guaranteed to be best possible, hence we update it in place */
-            hom_class_t * target_hom_class = hom_class_get(*(args->target_hom_classes_ptr), curr_hom_class->Lval, args->abs_tol);
-            if (target_hom_class != NULL) {
-                /** NOTE: ensure that we are not writing on this homotopy class itself **/
-                if (target_hom_class != curr_hom_class) {
-                    free_backtrack(target_hom_class);               
-                    hom_class_t * next = target_hom_class->next;    /** CRITICAL: preserve pointer to next element, else you break *target_hom_classes_ptr list! */
-                    *(target_hom_class) = *(curr_hom_class);        // copy in new homotopy class at the same adress
-                    target_hom_class->next = next;                  // restore next pointer to preserve list structure                      
-                }
-                filled_hom_classes++;   // if we dequeued a class in the targets, then we have filled it by here
-            }
-
+            write_path(curr_hom_class, args->config); // write path to ./params.json
             #ifdef AST_HC_DBG
             char * B_str = complex_list_to_string(curr_hom_class->endpoint_vertex->hom_classes);
             printf(
@@ -500,11 +119,31 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
             );
             free(B_str);
             #endif
-        
-            write_path(curr_hom_class, args->config); // write path to ./params.json
-            // free_backtrack(curr_hom_class); // leave path allocated here
-        }
-        // End of goal state subroutine 
+
+            // skip if there is no target class to update 
+            if (target_hom_classes_init) {
+                goto goal_check_end;
+            }
+            hom_class_t * target_hom_class = hom_class_get(*(args->target_hom_classes_ptr), curr_hom_class->Lval, args->abs_tol);
+            if (target_hom_class == NULL) {
+                goto goal_check_end;
+            }
+
+            // We update the just-extracted homotopy class using the following conventions
+            //      curr_hom_class unaffected
+            //      target set to current, except for the next pointer, required to preserve the structure of the target list
+            //      deep copy of the backtrack path struct, so that only curr_hom_class keeps the pointer to the path
+
+            hom_class_t * next = target_hom_class->next;    // preserve next pointer 
+            free_backtrack(target_hom_class);               // clean up old backtrack          
+            *(target_hom_class) = *(curr_hom_class);        // shallow copy
+            target_hom_class->backtrack = NULL;             // re-expand path for target class
+            expand_backtrack(args->params, target_hom_class);
+            target_hom_class->next = next;                  // restore next pointer to preserve list structure       
+            filled_hom_classes++;                           // mark filled class
+    
+        }   // End of goal state subroutine 
+        goal_check_end:
 
         // Generating outneighbors
         for (int dx = -1; dx <= 1; dx++) {  // x offsets
@@ -522,20 +161,10 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
             // check if homotopy class corresponding to this descriptor was discovered already
             bool discovered_nbr_class = false;
             hom_class_t* nbr_hom_class = hom_class_get(neighb_vertex->hom_classes, neighb_Lval, args->abs_tol);
-            // If not, initialize it
+            // If not, initialize it to defaults (see hom_classes.c)
             if (nbr_hom_class == NULL) {
                 discovered_nbr_class = true;
-                nbr_hom_class = (hom_class_t *) malloc(sizeof(hom_class_t));
-                nbr_hom_class->Lval = neighb_Lval;
-                nbr_hom_class->next = NULL; 
-                nbr_hom_class->updated = true; // constructed in this run of A*
-                nbr_hom_class->parent = NULL;
-                nbr_hom_class->g_score = INFINITY;
-                nbr_hom_class->f_score = INFINITY;
-                nbr_hom_class->is_evaluated = false;
-                nbr_hom_class->endpoint_vertex = neighb_vertex;
-                nbr_hom_class->minheap_node = NULL;
-                nbr_hom_class->backtrack = NULL; 
+                nbr_hom_class = hom_class_new(neighb_vertex, neighb_Lval);
             }
             // These are preliminary checks intended only for already-discovered homotopy classes
             if (nbr_hom_class->is_evaluated) {
@@ -578,7 +207,7 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
                 }
             }
         
-            /** CRITICAL: If the homotopy class is already in the min heap, dedrease key, otherwise add it */
+            // if homotopy class already in the min heap, dedrease key, else add it
             if (nbr_hom_class->minheap_node) {
                 decrease_key(open_set, nbr_hom_class->minheap_node, nbr_hom_class->f_score);
             } else {
@@ -586,9 +215,16 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
             }
         }
         }
+    }   // End of main A* procedure
+
+
+    // Handle initialization of target hom classes
+    if (target_hom_classes_init) {    
+        *(args->target_hom_classes_ptr) = S[y_goal_step][x_goal_step]->hom_classes; // write directly the discovered list
+        filled_hom_classes =  args->max_hom_classes;    // if we made it to here we can assume this
     }
 
-    // Add general print statement and timestamp
+    // logging and cleaning up procedure
     #ifdef AST_HC_DBG
     char * hom_classes_str = complex_list_to_string(*(args->target_hom_classes_ptr));
     printf(
@@ -610,7 +246,6 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
     );
     free(hom_classes_str);
     #endif
-
     #ifdef ASTCLCK
     CALCULATE_ELAPSED_TIME(start, end, elapsed);
     printf(
@@ -620,19 +255,51 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
     );
     #endif
 
-    // Clean up 
-    #ifdef ASTDBG
-    printf("Cleaning up resources...\n");
-    #endif
+    free_open_set(open_set); // redundant since set should be empty by this point 
+    // nontrivial destructor, as it spares the just-initialized target homotopy list
+    deallocate_grid(args, S, target_hom_classes_init, x_goal_step, y_goal_step);
+    
+}   // A* homotopies end
 
-    free_open_set(open_set); 
 
-    /** IMPORTANT: Grid deallocation, saving the hom_classes_list for the goal vertex as this is the collateral output, used for iterative runs */ 
+
+/*********** helpers ***************/
+hom_vertex_t *** allocate_grid(struct A_star_homotopies_args * args) {
+
+    hom_vertex_t *** S = malloc(args->params->ys_steps * sizeof(hom_vertex_t **));  // row pointers
+    if (!S) {
+        fprintf(stderr, "Failed to allocate memory for grid rows.\n");
+        return NULL;
+    }
+    for (int ys = 0; ys < args->params->ys_steps; ys++) {
+        S[ys] = (hom_vertex_t **) malloc(args->params->xs_steps * sizeof(hom_vertex_t *)); // allocate column
+        if (!S[ys]) {
+            fprintf(stderr, "Failed to allocate memory for grid columns at row %d.\n", ys);
+            // Free previously allocated memory before exiting
+            for (int j = 0; j < ys; j++) {
+                free(S[j]);
+            }
+            free(S);
+            return NULL;
+        }
+        for (int xs = 0; xs < args->params->xs_steps; xs++) {
+            /** VERTEX ALLOCATION:
+             *  1) limit each vertex in the grid to the desired maximum homotopy classes
+             *  2) use g-score as comparator to select homotopy classes represented per vertex
+             * NOTE: ignoring NULL returns
+             */ 
+            S[ys][xs] = hom_vertex_new(xs, ys, args->max_hom_classes, g_score_compare);
+        }
+    }
+    return S;
+}
+
+void deallocate_grid(struct A_star_homotopies_args * args, hom_vertex_t *** S, bool target_hom_classes_init, int x_goal_step, int y_goal_step) {
     for (int ys = 0; ys < args->params->ys_steps; ys++) {
         for (int xs = 0; xs < args->params->xs_steps; xs++) {
             hom_vertex_t * curr_vert = S[ys][xs];
-            // This free's all the dynamically allocated homotopy classes, except for the goal vertex
-            if (xs != x_goal_step || ys != y_goal_step) {
+            // Prevent deletion if we have passed the reference of the goal vertex's homotopy class list
+            if (!target_hom_classes_init || xs != x_goal_step || ys != y_goal_step) {
                 free_hom_classes_list(curr_vert->hom_classes);
             } 
             free(curr_vert); // free vertex * within matrix
@@ -640,14 +307,13 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
         free(S[ys]); // free row pointer (vertex **)
     } 
     free(S);
-    
-    // A* homotopies end
 }
 
 
 /*********** Unit testing area *****************
- * Demonstrating some use-cases and initializations required 
- * to run the main algorithm
+ * 
+ * Usage example and testing for the function A_star_homotopies
+ * 
 */
 
 #ifdef AST_UT
@@ -675,17 +341,11 @@ int main(int argc, char *argv[]) {
         return 1;  
     }
 
-    input_json_path = (char *) malloc(strlen(argv[1]) + 1);
-    if (input_json_path == NULL) {
-        fprintf(stderr, "Memory for <input_json_path> string allocation failed\n");
-        return 1;
-    }
-    strcpy(input_json_path, argv[1]);
-
-    PARSE_FLOAT(argv[2], a, 2);
-    PARSE_FLOAT(argv[3], b, 3);
-    PARSE_INT(argv[4], max_expandible_states_mult, 4);
-    PARSE_INT(argv[5], max_hom_classes, 5);
+    PARSE_STRING(input_json_path, argv[1], "<input_json_path>");
+    PARSE_FLOAT(argv[2], a);
+    PARSE_FLOAT(argv[3], b);
+    PARSE_INT(argv[4], max_expandible_states_mult);
+    PARSE_INT(argv[5], max_hom_classes);
 
     params = load_json(input_json_path);
     if (params == NULL) {
@@ -723,15 +383,21 @@ int main(int argc, char *argv[]) {
     astar_args->max_expandible_states_mult = max_expandible_states_mult;
 
 /* Input initialization complete: now invoking the main function */
-    A_star_homotopies(astar_args);
+    // test updating target_hom_classes with a couple iterations
+    for (int i = 0; i < 4; i++) {
+        A_star_homotopies(astar_args);
+        // Tweak the cost function to change the order in which homotopy classes are discovered
+        config->a *= powf(16, i);
+    }
 
-    // Clean up
-    free(params);
-    free(config);
-    delete_obstacle_marker_func_params(F);
-    free_hom_classes_list(target_hom_classes);
-    free(input_json_path);
+    /** IMPORTANT: order in which we free is crucial, since some structs depend on others! */
+    free_hom_classes_list(target_hom_classes);  // in an iteration scenario we would save the backtrack
     free(astar_args);
+    delete_obstacle_marker_func_params(F);
+    free(config);
+    free_params(params);
+    free(input_json_path);
+
 
     return 0;
 }

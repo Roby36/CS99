@@ -153,10 +153,21 @@ void insert_sorted(open_set_t *set, void * data) {
     // First check if we need a dynamic resize
     if (set->size >= set->capacity - 1) {
         // Resize array if capacity is exceeded, through dynamic reallocation
-        set->capacity *= 2;
-        set->nodes = realloc(set->nodes, sizeof(minheap_node *) * set->capacity);
+        int new_capacity = set->capacity * 2; // handle carefully since exponential
+        minheap_node **new_nodes = realloc(set->nodes, sizeof(minheap_node *) * new_capacity);
+        if (new_nodes == NULL) {
+            // Handle realloc failure; in this implementation, we choose to simply return without adding the new element
+            DEBUG_ERROR("Failed to resize the heap array\n");
+            return; // Exiting the function here prevents overwriting 'set->nodes' with NULL, avoiding a leak
+        }
+        set->nodes = new_nodes;
+        set->capacity = new_capacity;
     }
     minheap_node * node = malloc(sizeof(minheap_node));
+    if (node == NULL) {
+        DEBUG_ERROR("Failed to allocate memory for a new node\n");
+        return; // Early return to avoid inserting a null node
+    }
     // Allocate the wrapper for the arbitrary void*
     node->generic = data;  
     /* Now use the special accessor functions to handle the generic data type */
@@ -327,33 +338,46 @@ void open_set_testing() {
     // Testing remove_from_heap
     int vertex_number = num_vertices - 6;
     printf("\nRemoving from heap vertex at index %d with %f f_score:\n", vertices[vertex_number].minheap_node->index, vertices[vertex_number].f_score);
-    remove_from_heap(set, vertices[vertex_number].minheap_node);
+    remove_from_open_set(set, vertices[vertex_number].minheap_node);
     print_open_set(set);
 
     // Testing remove_from_heap
     vertex_number = num_vertices - 8;
     printf("\nRemoving from heap vertex at index %d with %f f_score:\n", vertices[vertex_number].minheap_node->index, vertices[vertex_number].f_score);
-    remove_from_heap(set, vertices[vertex_number].minheap_node);
+    remove_from_open_set(set, vertices[vertex_number].minheap_node);
     print_open_set(set);
 
     // Testing remove_from_heap
     vertex_number = 2;
     printf("\nRemoving from heap vertex at index %d with %f f_score:\n", vertices[vertex_number].minheap_node->index, vertices[vertex_number].f_score);
-    remove_from_heap(set, vertices[vertex_number].minheap_node);
+    remove_from_open_set(set, vertices[vertex_number].minheap_node);
     print_open_set(set);
 
     // Testing remove_from_heap
     vertex_number = 5;
     printf("\nRemoving from heap vertex at index %d with %f f_score:\n", vertices[vertex_number].minheap_node->index, vertices[vertex_number].f_score);
-    remove_from_heap(set, vertices[vertex_number].minheap_node);
+    remove_from_open_set(set, vertices[vertex_number].minheap_node);
     print_open_set(set);
 
     // Testing remove_from_heap
     vertex_number = 0;
     printf("\nRemoving from heap vertex at index %d with %f f_score:\n", vertices[vertex_number].minheap_node->index, vertices[vertex_number].f_score);
-    remove_from_heap(set, vertices[vertex_number].minheap_node);
+    remove_from_open_set(set, vertices[vertex_number].minheap_node);
     print_open_set(set);
 
+    // Testing decrease key
+    vertex_number = 4;
+    printf("\nDecreasing key for vertex at index %d with %f f_score:\n", vertices[vertex_number].minheap_node->index, vertices[vertex_number].f_score);
+    vertices[vertex_number].f_score = 0.1; // Update the f_score
+    decrease_key(set, vertices[vertex_number].minheap_node, vertices[vertex_number].f_score);
+    print_open_set(set);
+
+    // Testing decrease key
+    vertex_number = 4;
+    printf("\nDecreasing key for vertex at index %d with %f f_score:\n", vertices[vertex_number].minheap_node->index, vertices[vertex_number].f_score);
+    vertices[vertex_number].f_score = 0.1; // Update the f_score
+    decrease_key(set, vertices[vertex_number].minheap_node, vertices[vertex_number].f_score);
+    print_open_set(set);
 
     // Dequeue elements and print
     printf("\nDequeuing elements:\n");

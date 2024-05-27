@@ -5,14 +5,13 @@
 #include <complex.h>
 #include <math.h>
 
+#include "utils.h"
+
 #ifdef HC_UT // parser is only necessary for the unit test program
 #include "parser.h"
 #endif
 
 #define NBR_OFF_COUNT 3 // neighbors per dimension
-
-#include "commonmacros.h"
-#include "utils.h"
 
 typedef double complex Complex;
 

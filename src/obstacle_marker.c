@@ -180,25 +180,53 @@ static void compute_Lvals(F_t * F) {
     for (int ys = 0; ys < F->params->ys_steps; ys++) {
         (F->Lvals)[ys] = (Complex ***) malloc(F->params->xs_steps * sizeof(Complex **)); // allocate column for each row
         if (!(F->Lvals)[ys]) {
+        /**** CLEANUP: ****/
             DEBUG_ERROR("Failed to allocate memory for F->Lvals[ys]");
-            // Free previously allocated memory before exiting
+            // Cleanup previously allocated memory for F->Lvals
+            for (int cleanup = 0; cleanup < ys; cleanup++) {
+                free((F->Lvals)[cleanup]);
+            }
+            free(F->Lvals);
+            F->Lvals = NULL;
             return;
         }
         for (int xs = 0; xs < F->params->xs_steps; xs++) {
             // For each point (xs, ys), allocate space for the nested 2x2 matrix of the 8 neighboring states
             (F->Lvals)[ys][xs] = (Complex **) malloc((NBR_OFF_COUNT) * sizeof(Complex *));
             if (!(F->Lvals)[ys][xs]) {
-            DEBUG_ERROR("Failed to allocate memory for F->Lvals[ys][xs]");
-            // Free previously allocated memory before exiting
-            return;
+            /**** CLEANUP: ****/
+                DEBUG_ERROR("Failed to allocate memory for F->Lvals[ys][xs]");
+                // Free previously allocated memory before exiting
+                // Cleanup previous allocations in F->Lvals
+                for (int cleanup_ys = 0; cleanup_ys <= ys; cleanup_ys++) {
+                    for (int cleanup_xs = 0; cleanup_xs < (cleanup_ys == ys ? xs : F->params->xs_steps); cleanup_xs++) {
+                        free((F->Lvals)[cleanup_ys][cleanup_xs]);
+                    }
+                    free((F->Lvals)[cleanup_ys]);
+                }
+                free(F->Lvals);
+                F->Lvals = NULL;
+                return;
             }
             for (int dy = -1; dy <= 1; dy++) {
                 int yn = ys + dy;
                 (F->Lvals)[ys][xs][dy + 1] = (Complex *) malloc((NBR_OFF_COUNT) * sizeof(Complex)); // save with dy offset
                 if (!(F->Lvals)[ys][xs][dy + 1]) {
-                DEBUG_ERROR("Failed to allocate memory for F->Lvals[ys][xs][dy + 1]");
-                // Free previously allocated memory before exiting
-                return;
+                /**** CLEANUP: ****/
+                    DEBUG_ERROR("Failed to allocate memory for F->Lvals[ys][xs][dy + 1]");
+                    // Cleanup for all allocated memory
+                    for (int cleanup_ys = 0; cleanup_ys <= ys; cleanup_ys++) {
+                        for (int cleanup_xs = 0; cleanup_xs <= xs; cleanup_xs++) {
+                            for (int cleanup_dy = -1; cleanup_dy <= (cleanup_xs == xs && cleanup_ys == ys ? dy : 1); cleanup_dy++) {
+                                free((F->Lvals)[cleanup_ys][cleanup_xs][cleanup_dy + 1]);
+                            }
+                            free((F->Lvals)[cleanup_ys][cleanup_xs]);
+                        }
+                        free((F->Lvals)[cleanup_ys]);
+                    }
+                    free(F->Lvals);
+                    F->Lvals = NULL;
+                    return;
                 }
             for (int dx = -1; dx <= 1; dx++) {
                 int xn = xs + dx; // x-neighbor matrix position
@@ -381,6 +409,9 @@ Complex * get_obstacle_markers(F_t * F) {
 
 int main(int argc, char *argv[]) {
 
+    // Hard-coded for testing purposes
+    float float_tol = 0.1;
+
     // Validate input 
     if (argc != 2) {  // Check if the number of arguments is correct
         fprintf(stderr, "Usage: %s input_json_path\n", argv[0]);
@@ -400,16 +431,14 @@ int main(int argc, char *argv[]) {
     // Extract parameters from json, and from corresponding struct
     Params * params = load_json(input_json_path);
     // Extract obstacle marker parameters from parameters
-    F_t * F = extract_obstacle_marker_func_params(params);
+    F_t * F = initialize_obstacle_marker_func_params(params, float_tol);
 
-    Complex integral_path_1 = calculate_path_integral(params->test_path_1, params->steps_path1, F);
-    Complex integral_path_2 = calculate_path_integral(params->test_path_2, params->steps_path2, F);
-
-    printf("integral_path_1 = %f + %f * i\n", creal(integral_path_1), cimag(integral_path_1));
-    printf("integral_path_2 = %f + %f * i\n", creal(integral_path_2), cimag(integral_path_2));
+    // not testing calculate_path_integral since it does not manipulate memory
 
     // Clean up
     delete_obstacle_marker_func_params(F);
+    free_params(params);
+    free(input_json_path);
 
     return 0;
 }

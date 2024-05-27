@@ -3,38 +3,10 @@
 
 #include "parser.h"
 #include "utils.h"
-#include "hom_vertex.h"
 #include "open_set.h"
-#include "commonmacros.h"
 #include "obstacle_marker.h"
 #include "hom_classes.h"
-
-/*** Configuration parameters wrapper ***/
-typedef struct {
-    float a;
-    float b;
-} Config;
-
-/*** Default cost function ***/
-float edge_cost(
-    int x_1, int y_1, int x_2, int y_2,
-    Params * params,
-    Config * config
-);
-
-/*** Single homotopy class heuristic ***/
-float heuristic(
-    int x_n, int y_n, int x_g, int y_g,
-    Params * params,
-    Config * config
-);
-
-/*** Multiple homotopy class heuristic (Dijkstra's) ***/
-float zero_heuristic(
-    int x_n, int y_n, int x_g, int y_g,
-    Params * params,
-    Config * config
-);
+#include "cost_funcs.h"
 
 /**************** A_star_homotopies ***************
  * 
@@ -49,43 +21,26 @@ float zero_heuristic(
  *          - absolute value tolerance when comparing real and imaginary components of homotopy class descriptors
  *          - obstacle marker function parameters (opaque type handled in obstacle_marker.c)
  *          - pointer of list of target homotopy classes to be updated in place
- *          - number of target homotopy classes
+ *          - number of target homotopy classes to search
  * 
  * Outputs:
- *          -  Possible return value: The number of filled homotopy classes, which may or may not be the input maximum homotopy classes
- *          -  Collateral: The list of target homotopy classes is updated with the detected homotopy classes into the goal,
+ *          -  Collateral: The list of target homotopy classes is updated in place with the detected homotopy classes into the goal,
  *                         as explained in the sub-routine A_star_goal_check.
  * 
  * 
- * NOTE: Caller responsible for properly initializing both Params and F_t structs before passing them to A_star_homotopies
- *       Caller responsible for later free'ing target_hom_classes (i.e. by calling free_hom_classes_list(target_hom_classes))
- *          and other already-initialized structs passed such as params and F
+ * NOTE: Caller responsible for properly allocating and placing all parameters into the dedicated struct.
+ *       This function will not change any of the parameters in the given struct, except for updating in place the location 
+ *          pointed to by target_hom_classes_ptr with the updated homotopy classes for the goal.
+ *       The caller is then responsible for deallocating all the input parameters.
  * 
+ * IMPORTANT: The target homotopy class list is allocated and set to the goal's if it points to NULL (intended initialization).
+ *            Otherwise, the function updates in place each homotopy class of the target list. Therefore, the homotopy classes
+ *            are still reacheable at the same addresses, but with the new goal point information copied in.
+ *            It is thus the responsibility of the caller to either pass again the target homotopy list for another round,
+ *            or eventually free it when finished using it.
+ *            This design allows to extract the paths to the goal at every iteration
  * 
- * Usage example:
- * 
- *  Params * params = load_json(input_json_path);
-    F_t * F = initialize_obstacle_marker_func_params(params, float_tol);
-    const int num_iterations = 4;   // A* runs
-    const int max_hom_classes = params->num_obstacles;  // how many homotopy classes we want A* to keep track of
-    hom_classes_list_t * target_hom_classes = NULL;     // list of homotopic classes, initialized to NULL
-
-    for (int i = 0; i < num_iterations; i++) {
-        A_star_homotopies(
-        params, config,
-        zero_heuristic, // this essentially turns A* into Dijkstra's for uniform exploration
-        edge_cost, float_tol,
-        0.1, F,
-        &target_hom_classes,
-        max_hom_classes
-        );
-        // Tweak the cost function to change the order in which homotopy classes are discovered
-        config->a *= powf(16, i);
-    }
-    // Free the final resulting homtopy classes list
-    free_hom_classes_list(target_hom_classes);
-    // Other clean-up routines
- *
+ * Detailed usage and testing example shown in the implementation file. 
 */
 struct A_star_homotopies_args {
     Params * params;
@@ -101,4 +56,9 @@ struct A_star_homotopies_args {
     int max_expandible_states_mult;
 };
 void A_star_homotopies(struct A_star_homotopies_args * args);
+
+
+/************** helpers ******************/
+hom_vertex_t *** allocate_grid(struct A_star_homotopies_args * args);
+void deallocate_grid(struct A_star_homotopies_args * args, hom_vertex_t *** S, bool target_hom_classes_init, int x_goal_step, int y_goal_step);
 

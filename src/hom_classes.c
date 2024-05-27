@@ -1,10 +1,64 @@
 
 #include "hom_classes.h"
 
-/** This linked list-like data structure handles 
- * the operations necessary for processing L-values associated
- * with each vertex  
-*/
+// here to prevent duplicate symbol
+const char * output_path_key_format = "a=%.2f, b=%.2f, L=(%.2f + %.2fi)";
+
+/************************************** hom_vertex ***************************************/
+
+hom_vertex_t * hom_vertex_new(
+    int x_s, int y_s, 
+    int max_hom_classes,  
+    bool (*less_than)(hom_class_t *, hom_class_t *))
+{
+    hom_vertex_t * hv = malloc(sizeof(hom_vertex_t));
+    if (hv == NULL) {
+        DEBUG_ERROR("Malloc error allocating new homotopy vertex struct");
+        return NULL;
+    }
+    // constant fields
+    hv->x_s = x_s;
+    hv->y_s = y_s;
+    // list to be accessed and updated as required by the caller
+    hv->hom_classes = hom_classes_list_new(max_hom_classes, less_than);
+
+    return hv;
+}
+
+
+/************************************** hom_class ***************************************/
+
+hom_class_t * hom_class_new(hom_vertex_t * endpoint_vertex, Complex Lval) {
+
+    hom_class_t * hc = (hom_class_t *) malloc(sizeof(hom_class_t));
+    if (hc == NULL) {
+        DEBUG_ERROR("Malloc error allocating new homotopy class struct");
+        return NULL;
+    }
+    // constant fields
+    hc->Lval = Lval;
+    hc->endpoint_vertex = endpoint_vertex;
+    // to be updated by the caller
+    hc->next = NULL; 
+    hc->updated = true; // constructed in this run of A*
+    hc->parent = NULL;
+    hc->is_evaluated = false;
+    hc->minheap_node = NULL;
+    hc->backtrack = NULL; 
+    hc->g_score = INFINITY;
+    hc->f_score = INFINITY;
+
+    return hc;
+}
+
+void hom_class_free(hom_class_t * hc) {
+    if (hc == NULL) return;
+    // backtrack is the only field potentially pointing to other memory to deallocate
+    if (hc->backtrack) {
+        free_backtrack(hc);
+    }
+    free(hc);
+}
 
 bool g_score_compare(hom_class_t * hc_1, hom_class_t * hc_2) {
     return (
@@ -13,6 +67,128 @@ bool g_score_compare(hom_class_t * hc_1, hom_class_t * hc_2) {
         hc_1->g_score < hc_2->g_score
     );
 }
+
+void expand_backtrack(Params *params, hom_class_t * hom_class) {
+    
+    int edge_number     = 0;       // number of discrete edges
+    float abs_len_cumul = 0.0f;    // cumulative length of path, scaled up
+    float riem_cumul    = 0.0f;    // cumulative rieamnn sum for g_image buildup, scaled up
+    int x_curr, y_curr;            // backtracking coordinates
+    int x_next, y_next;         
+
+    // First, find the length of the path by traversing from goal to start
+    hom_class_t * curr_hom_class = hom_class;
+    while (curr_hom_class != NULL) {
+        edge_number++;
+        curr_hom_class = curr_hom_class->parent;
+    }
+
+    // Check if backtrack was already expanded 
+    if (hom_class->backtrack == NULL) {
+        hom_class->backtrack = (Backtrack_Path *) malloc (sizeof(Backtrack_Path));
+    } else {
+        DEBUG_ERROR(
+            "homotopy class has non-NULL backtrack, meaning it is already expanded: "
+            "please free by calling free_backtrack before re-expanding to prevent memory leaks "
+        );
+        return;
+    }
+
+    Backtrack_Path * bt = hom_class->backtrack;
+
+    // Set length for path struct
+    bt->total_edges = edge_number;
+
+    // Allocate memory for the points list
+    bt->point_list = malloc(sizeof(float *) * edge_number);
+    for (int i = 0; i < edge_number; i++) {
+        bt->point_list[i] = malloc(sizeof(float) * 2); // Each point has two coordinates (x, y)
+        if (!bt->point_list[i]) {
+            fprintf(stderr, "Memory allocation failed for point_list[%d].\n", i);
+            return;
+        }
+    }
+
+    // Backtrack from goal to start and store the path in reverse
+    curr_hom_class = hom_class;
+    for (int i = edge_number - 1; i >= 0; i--) {
+
+        // Extract coordinates from current vertex and parent if there is one
+        x_curr = x_next = curr_hom_class->endpoint_vertex->x_s;
+        y_curr = y_next = curr_hom_class->endpoint_vertex->y_s;
+        if (curr_hom_class->parent != NULL) {
+            x_next = curr_hom_class->parent->endpoint_vertex->x_s;
+            y_next = curr_hom_class->parent->endpoint_vertex->y_s;
+        }
+
+        // Re-compute length and Riemann sum as they were originally computed, this time without the constants a,b
+        abs_len_cumul  +=                 len(x_next, y_next, x_curr, y_curr, params);
+        riem_cumul     += g_image_riemann_sum(x_next, y_next, x_curr, y_curr, params);
+
+        // Record points in the array containing the path
+        bt->point_list[i][0] = params->x_min + (x_curr * params->s); // Convert x_s back to x
+        bt->point_list[i][1] = params->y_min + (y_curr * params->s); // Convert y_s back to y
+
+        #ifdef ASTDBG
+        printf("Backtracking path point[%d]: (%.2f, %.2f)\n", i, bt->point_list[i][0], bt->point_list[i][1]);
+        #endif
+
+        curr_hom_class = curr_hom_class->parent;    // iterate backwards through vertices on optimal path
+    }
+
+    // Set elements for the path
+    bt->g_image_riemann_tot = riem_cumul;
+    bt->absolute_length     = abs_len_cumul;
+
+}
+
+void write_path(hom_class_t * hom_class, Config * config){
+
+    Backtrack_Path * bt = hom_class->backtrack;
+    if (bt == NULL) return;
+    const int str_size = 256;
+    char * Lval_string = (char*) malloc(str_size);
+
+    // Format the entry for the path in the output .json file
+    snprintf(
+        Lval_string, str_size, 
+        output_path_key_format, 
+        config->a, config->b, creal(hom_class->Lval), cimag(hom_class->Lval)
+    );
+    #ifdef AST_HC_DBG
+    printf("Writing path to ./params.json file with key: %s\n", Lval_string);
+    #endif
+    write_json("./params.json", Lval_string, bt->point_list, bt->total_edges - 1, 2);
+    free(Lval_string);
+}
+
+void free_backtrack(hom_class_t * hom_class) {
+
+    Backtrack_Path * bt = hom_class->backtrack;
+
+    // Verify that both path struct and internal point list are accessible 
+    if (bt == NULL || bt->point_list == NULL || bt->total_edges == 0) {
+        DEBUG_ERROR("free_point_array: opt_path = NULL OR opt_path->point_list = NULL OR opt_path->l = 0");
+        return;
+    }
+
+    // Edge iteration through array
+    for (int i = 0; i < bt->total_edges; i++) {
+        // Verify that we are actually free'ing
+        if (bt->point_list[i] == NULL) {
+            DEBUG_ERROR("free_point_array: unexpected NULL value for opt_path->point_list[i]");
+        }
+        // Free the point
+        free(bt->point_list[i]);
+    }
+    free(bt->point_list);
+
+    // Finally, free the backtrack structure pointer itself
+    free(bt); 
+}
+
+
+/************************************** hom_classes_list **************************************/
 
 hom_classes_list_t *hom_classes_list_new(int capacity, bool (*less_than)(hom_class_t *, hom_class_t *)) {
 
@@ -26,16 +202,16 @@ hom_classes_list_t *hom_classes_list_new(int capacity, bool (*less_than)(hom_cla
     hom_classes_list->capacity = capacity;
     hom_classes_list->size = 0;
     hom_classes_list->less_than = less_than;
-    hom_classes_list->last_ptr = &(hom_classes_list->head);
 
     return hom_classes_list;
 }
 
 void free_hom_classes_list(hom_classes_list_t *hom_classes_list) {
+    if (hom_classes_list == NULL) return;
     hom_class_t *current = hom_classes_list->head;
     while (current != NULL) {
         hom_class_t *next = current->next;
-        free(current);
+        hom_class_free(current);
         current = next;
     }
     free(hom_classes_list);
@@ -78,7 +254,7 @@ bool insert_hom_class_sorted(hom_classes_list_t *hom_classes_list, hom_class_t *
     *(truncated) = NULL;
     
     hom_class_t **it = &(hom_classes_list->head);
-    // Proceed to potential insertion for a new homotopy class, with different L-val
+    // note that we have NULL-checked both args of less_than
     while (*it != NULL && hom_classes_list->less_than(*it, hom_class)) {
         it = &(*it)->next; // Navigate to the correct insertion point.
     }
@@ -105,30 +281,6 @@ bool insert_hom_class_sorted(hom_classes_list_t *hom_classes_list, hom_class_t *
         hom_classes_list->size--;   // decrease size after removing last element  
     }
     return true;
-}
-
-bool insert_hom_class(hom_classes_list_t *hom_classes_list, hom_class_t *hom_class, double abs_tol) {
-
-    if (!hom_classes_list || !hom_class) return false; // Check for null pointers.
-
-    if (hom_class_get(hom_classes_list, hom_class->Lval, abs_tol) != NULL) {
-        return false; // Prevent insertion if duplicate is found.
-    }
-
-    hom_class_t **it = &(hom_classes_list->head);
-    while (*it != NULL && hom_classes_list->less_than(*it, hom_class)) {
-        it = &(*it)->next; // Navigate to the correct insertion point.
-    }
-
-    // Perform the insertion only if the list is not at capacity, regardless of f_scores
-    if (hom_classes_list->size < hom_classes_list->capacity) {
-        hom_class->next = *it;
-        *it = hom_class;
-        hom_classes_list->size++;
-        return true;
-    }
-
-    return false; // Return false if the list is at capacity and no insertion was made.
 }
 
 char* complex_list_to_string(hom_classes_list_t *list) {
@@ -167,9 +319,11 @@ void unflag_homotopy_classes(hom_classes_list_t *list) {
     }
 }
 
-/******* Unit testing area ********/
 
-#ifdef LVAL_UT
+
+/****************************** Unit testing area *******************************/
+
+#ifdef HCSL_UT
 
 #define CAPACITY 10
 
@@ -180,18 +334,6 @@ void print_complex_list(hom_classes_list_t *list) {
         current = current->next;
     }
     printf("\n");
-}
-// Function to create a new homotopy class
-hom_class_t *new_hom_class(double complex Lval, float g_score) {
-    hom_class_t *hc = malloc(sizeof(hom_class_t));
-    if (hc == NULL) {
-        fprintf(stderr, "Memory allocation failed for homotopy class.\n");
-        return NULL;
-    }
-    hc->Lval = Lval;
-    hc->g_score = g_score;
-    hc->next = NULL;
-    return hc;
 }
 
 // Function to print the list
@@ -205,32 +347,58 @@ void print_list(hom_classes_list_t *list) {
     printf("NULL\n\n");
 }
 
-// Test insertion function
-void test_insertion() {
+void example_usage() {
+
+    // hard-coded constants
     const double abs_tol = 0.1;
     const int num_homotopy_classes = 24;
-    // Create the linked list
-    hom_classes_list_t list = {NULL, CAPACITY, 0, g_score_compare};
 
-    // Create homotopy classes with varying f-scores and complex L-values
-    hom_class_t *classes[num_homotopy_classes];
+    // Create the linked list
+    hom_classes_list_t * list = hom_classes_list_new(CAPACITY, g_score_compare);
+
+    /** NOTE: caller responsible for malloc'ing homotopy classes to then insert */
+    hom_class_t * classes[num_homotopy_classes];
     for (int i = 0; i < num_homotopy_classes; i++) {
-        classes[i] = new_hom_class(CMPLX(i, i), (float)rand() / RAND_MAX * 10.0);
+        hom_class_t *hc = malloc(sizeof(hom_class_t));
+        if (hc == NULL) {
+            fprintf(stderr, "Memory allocation failed for homotopy class.\n");
+            return;
+        }
+        hc->Lval    = CMPLX(i, i);
+        hc->g_score = (float)rand() / RAND_MAX * 10.0;
+        hc->next    = NULL;
+        classes[i] = hc;
     }
 
-    // Insert classes into the list and print the list after each insertion
+    // insertion procedure
     for (int i = 0; i < num_homotopy_classes; i++) {
-        if (insert_hom_class_sorted(&list, classes[i], abs_tol)) {
+        hom_class_t * truncated;
+        bool inserted = insert_hom_class_sorted(list, classes[i], abs_tol, &truncated);
+        if (inserted) {
             printf("Inserted class with g-score: %f\n", classes[i]->g_score);
+            /** NOTE: caller responsible for managing deallocation of truncated element upon insertion */
+            if (truncated) {
+                printf("Truncated and free'd class with g-score: %f\n", truncated->g_score);
+                free(truncated);
+            }
         } else {
             printf("Failed to insert class with g-score: %f\n", classes[i]->g_score);
+            /** NOTE: caller responsible for managing deallocation of failed-to-insert element */
+            free(classes[i]);
         }
-        print_list(&list);
+        print_list(list);
+        // Allocate and free the string representing the list
+        char * list_str = complex_list_to_string(list);
+        printf("complex_list_to_string output: %s\n", list_str);
+        free(list_str);
     }
+
+    // now the list handles the free'ing of all remaining elements
+    free_hom_classes_list(list);
 }
 
 int main() {
-    test_insertion();
+    example_usage();
     return 0;
 }
 
