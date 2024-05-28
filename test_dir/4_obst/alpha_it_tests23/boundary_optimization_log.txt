@@ -1,0 +1,51 @@
+Started pre-computation of Lvalues for the grid...
+
+Lvalues precomputation for entire grid took 2.34414 seconds
+
+Running boundary_optimization with inputs from command-line
+	bound = 0.300000
+	var_mult = 64.000000
+	MAX_IT = 4
+	max_expandible_states_mult = 16
+	max_hom_classes = 4
+
+
+A* invoked with the inputs:
+	(x_g, y_g) = (99.000000, 99.000000)
+	r = 0.050000, s = 0.200000
+	a = 0.000000, b = 1.000000
+	float tolerance = 0.050000
+	absolute tolerance for homotopy classes: 0.100000
+	Maximum homotopy classes: 4
+	Maximum expandible states: 16000000
+
+
+A* terminated with the inputs:
+	(x_g, y_g) = (99.000000, 99.000000)
+	r = 0.050000, s = 0.200000
+	a = 0.000000, b = 1.000000
+	float tolerance = 0.050000
+	absolute tolerance for homotopy classes: 0.100000
+	Maximum homotopy classes: 4
+	Target homotopy classes: 
+	Filled homotopy classes: 4
+	Maximum expandible states: 16000000
+	Total states expanded: 3157108
+	Current size of the open set (enqueued states): 0
+
+Time elapsed since invoking A_star_homotopies until end of execution:
+	5.92543 seconds
+
+
+Boundary optimization terminated as no homotopy clases have been updated at iteration 1
+
+boundary_optimization terminated with inputs:
+	bound = 0.30; var_start = 0.01; var_mult = 64.00
+
+
+---------------- LATEX TABLES START ----------------
+
+
+
+---------------- LATEX TABLES END ----------------
+

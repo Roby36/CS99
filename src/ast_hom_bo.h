@@ -1,7 +1,5 @@
 
-#include "commonmacros.h"
 #include "astar_homotopies.h"
-#include "parser.h"
 
 #define MAX_HC_PER_TABLE 3  // Maximum number of homotopy classes per table, determined by latex rendering issues 
 
@@ -72,18 +70,6 @@ void boundary_optimization(
     struct BO_Params * bo
 );
 
-
-/* Getters / setters for fixed and variable path metrics */
-float * g_image_getter(Backtrack_Path * bt) {
-    float * g_image_ptr = &(bt->g_image_riemann_tot);
-    return g_image_ptr;
-}
-
-float * path_length_getter(Backtrack_Path * bt) {
-    float * length_ptr = &(bt->absolute_length);
-    return length_ptr;
-}
-
 // Prints function directly in LaTex format
 void print_LaTex_table(
     struct A_star_homotopies_args * astar_args,
@@ -96,5 +82,12 @@ void bo_clean_up(
     struct A_star_homotopies_args * astar_args, 
     struct BO_Params * bo
 );
+
+
+/* Getters / setters for fixed and variable path metrics */
+float * g_image_getter(Backtrack_Path * bt);
+float * path_length_getter(Backtrack_Path * bt);
+
+
 
 

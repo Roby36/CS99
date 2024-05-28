@@ -54,6 +54,7 @@ struct A_star_homotopies_args {
     hom_classes_list_t ** target_hom_classes_ptr; 
     int max_hom_classes;
     int max_expandible_states_mult;
+    char * json_filepath;
 };
 void A_star_homotopies(struct A_star_homotopies_args * args);
 

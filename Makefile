@@ -19,11 +19,11 @@ SOURCES := 	$(CJSON_DIR)/cJSON.c \
            	$(SRC_DIR)/astar_homotopies.c
 
 # Files for stand-alone boundary optimizations program				
-BO_FILES := $(SRC_DIR)/ast_hom_bo.c
+BO_FILES := $(SRC_DIR)/ast_hom_bo.c $(SRC_DIR)/bo_test_main.c
 
 # Target to build the project
-bo_hom_test: $(SOURCES) $(BO_FILES)
-	$(CC) $(CFLAGS) $(LFLAGS) -DBO_LATEX -DBO_UT -DBO_LOG $^ -o $(BIN_DIR)/$@
+boundary_optimizations: $(SOURCES) $(BO_FILES)
+	$(CC) $(CFLAGS) $(LFLAGS) -DBO_LATEX -DBO_LOG $^ -o $(BIN_DIR)/$@
 
 # Unit tests of various submodules
 astar_ut: $(SOURCES)

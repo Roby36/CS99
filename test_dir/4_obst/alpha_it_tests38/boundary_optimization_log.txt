@@ -1,0 +1,419 @@
+Started pre-computation of Lvalues for the grid...
+
+Lvalues precomputation for entire grid took 2.51443 seconds
+
+Running boundary_optimization with inputs from command-line
+	bound = 0.300000
+	var_mult = 64.000000
+	MAX_IT = 4
+	max_expandible_states_mult = 16
+	max_hom_classes = 4
+
+
+A* invoked with the inputs:
+	(x_g, y_g) = (99.000000, 99.000000)
+	r = 0.050000, s = 0.200000
+	a = 0.000000, b = 1.000000
+	float tolerance = 0.050000
+	absolute tolerance for homotopy classes: 0.100000
+	Maximum homotopy classes: 4
+	Maximum expandible states: 16000000
+
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=0.00, b=1.00, L=(-30.71 + 5.94i)
+
+A* found new homotopic class to goal:
+	L-value: (-30.71 + 5.94i)
+	cumulative length: 288.329559
+	g_image Riemann sum (accumulated uncertainty): 233.234589
+
+Current status of the graph search:
+	Total states expanded: 1421696
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),
+	Current size of the open set (enqueued states): 3566
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=0.00, b=1.00, L=(-3.33 + -2.10i)
+
+A* found new homotopic class to goal:
+	L-value: (-3.33 + -2.10i)
+	cumulative length: 305.668945
+	g_image Riemann sum (accumulated uncertainty): 266.573669
+
+Current status of the graph search:
+	Total states expanded: 1686947
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),
+	Current size of the open set (enqueued states): 4955
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=0.00, b=1.00, L=(-3.33 + 4.19i)
+
+A* found new homotopic class to goal:
+	L-value: (-3.33 + 4.19i)
+	cumulative length: 331.093811
+	g_image Riemann sum (accumulated uncertainty): 283.715607
+
+Current status of the graph search:
+	Total states expanded: 2147258
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),	(-3.33 + 4.19i),	(-19.43 + -9.05i),
+	Current size of the open set (enqueued states): 4747
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=0.00, b=1.00, L=(-19.43 + -9.05i)
+
+A* found new homotopic class to goal:
+	L-value: (-19.43 + -9.05i)
+	cumulative length: 331.091522
+	g_image Riemann sum (accumulated uncertainty): 232.995697
+
+Current status of the graph search:
+	Total states expanded: 2147276
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),	(-3.33 + 4.19i),	(-19.43 + -9.05i),
+	Current size of the open set (enqueued states): 4747
+
+A* terminated with the inputs:
+	(x_g, y_g) = (99.000000, 99.000000)
+	r = 0.050000, s = 0.200000
+	a = 0.000000, b = 1.000000
+	float tolerance = 0.050000
+	absolute tolerance for homotopy classes: 0.100000
+	Maximum homotopy classes: 4
+	Target homotopy classes: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),	(-3.33 + 4.19i),	(-19.43 + -9.05i),
+	Filled homotopy classes: 4
+	Maximum expandible states: 16000000
+	Total states expanded: 3460972
+	Current size of the open set (enqueued states): 0
+
+Time elapsed since invoking A_star_homotopies until end of execution:
+	6.88262 seconds
+
+
+A* invoked with the inputs:
+	(x_g, y_g) = (99.000000, 99.000000)
+	r = 0.050000, s = 0.200000
+	a = 0.010000, b = 1.000000
+	float tolerance = 0.050000
+	absolute tolerance for homotopy classes: 0.100000
+	Maximum homotopy classes: 4
+	Maximum expandible states: 16000000
+
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=0.01, b=1.00, L=(-30.71 + 5.94i)
+
+A* found new homotopic class to goal:
+	L-value: (-30.71 + 5.94i)
+	cumulative length: 288.329529
+	g_image Riemann sum (accumulated uncertainty): 208.686615
+
+Current status of the graph search:
+	Total states expanded: 1428985
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),
+	Current size of the open set (enqueued states): 3629
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=0.01, b=1.00, L=(-3.33 + -2.10i)
+
+A* found new homotopic class to goal:
+	L-value: (-3.33 + -2.10i)
+	cumulative length: 305.667877
+	g_image Riemann sum (accumulated uncertainty): 219.032471
+
+Current status of the graph search:
+	Total states expanded: 1696755
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),
+	Current size of the open set (enqueued states): 5001
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=0.01, b=1.00, L=(-19.43 + -9.05i)
+
+A* found new homotopic class to goal:
+	L-value: (-19.43 + -9.05i)
+	cumulative length: 331.090729
+	g_image Riemann sum (accumulated uncertainty): 182.326370
+
+Current status of the graph search:
+	Total states expanded: 2148331
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),	(-19.43 + -9.05i),
+	Current size of the open set (enqueued states): 4767
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=0.01, b=1.00, L=(-3.33 + 4.19i)
+
+A* found new homotopic class to goal:
+	L-value: (-3.33 + 4.19i)
+	cumulative length: 331.093109
+	g_image Riemann sum (accumulated uncertainty): 233.261749
+
+Current status of the graph search:
+	Total states expanded: 2156856
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),	(-19.43 + -9.05i),	(-3.33 + 4.19i),
+	Current size of the open set (enqueued states): 4738
+
+A* terminated with the inputs:
+	(x_g, y_g) = (99.000000, 99.000000)
+	r = 0.050000, s = 0.200000
+	a = 0.010000, b = 1.000000
+	float tolerance = 0.050000
+	absolute tolerance for homotopy classes: 0.100000
+	Maximum homotopy classes: 4
+	Target homotopy classes: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),	(-3.33 + 4.19i),	(-19.43 + -9.05i),
+	Filled homotopy classes: 4
+	Maximum expandible states: 16000000
+	Total states expanded: 3460972
+	Current size of the open set (enqueued states): 0
+
+Time elapsed since invoking A_star_homotopies until end of execution:
+	7.57372 seconds
+
+
+A* invoked with the inputs:
+	(x_g, y_g) = (99.000000, 99.000000)
+	r = 0.050000, s = 0.200000
+	a = 0.640000, b = 1.000000
+	float tolerance = 0.050000
+	absolute tolerance for homotopy classes: 0.100000
+	Maximum homotopy classes: 4
+	Maximum expandible states: 16000000
+
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=0.64, b=1.00, L=(-30.71 + 5.94i)
+
+A* found new homotopic class to goal:
+	L-value: (-30.71 + 5.94i)
+	cumulative length: 299.576416
+	g_image Riemann sum (accumulated uncertainty): 178.995621
+
+Current status of the graph search:
+	Total states expanded: 1844024
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),
+	Current size of the open set (enqueued states): 6214
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=0.64, b=1.00, L=(-3.33 + -2.10i)
+
+A* found new homotopic class to goal:
+	L-value: (-3.33 + -2.10i)
+	cumulative length: 318.903168
+	g_image Riemann sum (accumulated uncertainty): 184.415695
+
+Current status of the graph search:
+	Total states expanded: 2173299
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),
+	Current size of the open set (enqueued states): 6130
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=0.64, b=1.00, L=(-19.43 + -9.05i)
+
+A* found new homotopic class to goal:
+	L-value: (-19.43 + -9.05i)
+	cumulative length: 331.753448
+	g_image Riemann sum (accumulated uncertainty): 180.409821
+
+Current status of the graph search:
+	Total states expanded: 2317358
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),	(-19.43 + -9.05i),
+	Current size of the open set (enqueued states): 5911
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=0.64, b=1.00, L=(-14.61 + 19.18i)
+
+A* found new homotopic class to goal:
+	L-value: (-14.61 + 19.18i)
+	cumulative length: 363.435638
+	g_image Riemann sum (accumulated uncertainty): 158.985031
+
+Current status of the graph search:
+	Total states expanded: 2534870
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),	(-19.43 + -9.05i),	(-14.61 + 19.18i),
+	Current size of the open set (enqueued states): 4843
+
+A* terminated with the inputs:
+	(x_g, y_g) = (99.000000, 99.000000)
+	r = 0.050000, s = 0.200000
+	a = 0.640000, b = 1.000000
+	float tolerance = 0.050000
+	absolute tolerance for homotopy classes: 0.100000
+	Maximum homotopy classes: 4
+	Target homotopy classes: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),	(-3.33 + 4.19i),	(-19.43 + -9.05i),
+	Filled homotopy classes: 3
+	Maximum expandible states: 16000000
+	Total states expanded: 3460972
+	Current size of the open set (enqueued states): 0
+
+Time elapsed since invoking A_star_homotopies until end of execution:
+	6.74388 seconds
+
+
+Boundary optimization:  skipping homotopy class (-3.33 + 4.19i) / index 2, setting Backtrack_Path = NULL,  at iteration 2 becuase the homotopy class was not updated by A* (likely due to exceeding maximum expandible states),  with variable configuration parameter 0.64
+
+A* invoked with the inputs:
+	(x_g, y_g) = (99.000000, 99.000000)
+	r = 0.050000, s = 0.200000
+	a = 40.959999, b = 1.000000
+	float tolerance = 0.050000
+	absolute tolerance for homotopy classes: 0.100000
+	Maximum homotopy classes: 4
+	Maximum expandible states: 16000000
+
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=40.96, b=1.00, L=(-30.71 + 5.94i)
+
+A* found new homotopic class to goal:
+	L-value: (-30.71 + 5.94i)
+	cumulative length: 357.686920
+	g_image Riemann sum (accumulated uncertainty): 150.025772
+
+Current status of the graph search:
+	Total states expanded: 2474488
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),
+	Current size of the open set (enqueued states): 8634
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=40.96, b=1.00, L=(-14.61 + 19.18i)
+
+A* found new homotopic class to goal:
+	L-value: (-14.61 + 19.18i)
+	cumulative length: 383.519196
+	g_image Riemann sum (accumulated uncertainty): 150.968384
+
+Current status of the graph search:
+	Total states expanded: 2520957
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-14.61 + 19.18i),
+	Current size of the open set (enqueued states): 8181
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=40.96, b=1.00, L=(-3.33 + -2.10i)
+
+A* found new homotopic class to goal:
+	L-value: (-3.33 + -2.10i)
+	cumulative length: 380.201477
+	g_image Riemann sum (accumulated uncertainty): 151.870056
+
+Current status of the graph search:
+	Total states expanded: 2544125
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-14.61 + 19.18i),	(-3.33 + -2.10i),
+	Current size of the open set (enqueued states): 7941
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=40.96, b=1.00, L=(12.78 + 11.14i)
+
+A* found new homotopic class to goal:
+	L-value: (12.78 + 11.14i)
+	cumulative length: 406.033936
+	g_image Riemann sum (accumulated uncertainty): 152.812653
+
+Current status of the graph search:
+	Total states expanded: 2586554
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-14.61 + 19.18i),	(-3.33 + -2.10i),	(12.78 + 11.14i),
+	Current size of the open set (enqueued states): 7519
+
+A* terminated with the inputs:
+	(x_g, y_g) = (99.000000, 99.000000)
+	r = 0.050000, s = 0.200000
+	a = 40.959999, b = 1.000000
+	float tolerance = 0.050000
+	absolute tolerance for homotopy classes: 0.100000
+	Maximum homotopy classes: 4
+	Target homotopy classes: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),	(-3.33 + 4.19i),	(-19.43 + -9.05i),
+	Filled homotopy classes: 2
+	Maximum expandible states: 16000000
+	Total states expanded: 3460972
+	Current size of the open set (enqueued states): 0
+
+Time elapsed since invoking A_star_homotopies until end of execution:
+	7.76651 seconds
+
+
+Boundary optimization:  skipping homotopy class (-3.33 + 4.19i) / index 2, setting Backtrack_Path = NULL,  at iteration 3 becuase the homotopy class was not updated by A* (likely due to exceeding maximum expandible states),  with variable configuration parameter 40.96
+
+Boundary optimization:  skipping homotopy class (-19.43 + -9.05i) / index 3, setting Backtrack_Path = NULL,  at iteration 3 becuase the homotopy class was not updated by A* (likely due to exceeding maximum expandible states),  with variable configuration parameter 40.96
+
+A* invoked with the inputs:
+	(x_g, y_g) = (99.000000, 99.000000)
+	r = 0.050000, s = 0.200000
+	a = 2621.439941, b = 1.000000
+	float tolerance = 0.050000
+	absolute tolerance for homotopy classes: 0.100000
+	Maximum homotopy classes: 4
+	Maximum expandible states: 16000000
+
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=2621.44, b=1.00, L=(-30.71 + 5.94i)
+
+A* found new homotopic class to goal:
+	L-value: (-30.71 + 5.94i)
+	cumulative length: 359.521301
+	g_image Riemann sum (accumulated uncertainty): 150.009003
+
+Current status of the graph search:
+	Total states expanded: 2474500
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),
+	Current size of the open set (enqueued states): 8624
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=2621.44, b=1.00, L=(-14.61 + 19.18i)
+
+A* found new homotopic class to goal:
+	L-value: (-14.61 + 19.18i)
+	cumulative length: 384.036346
+	g_image Riemann sum (accumulated uncertainty): 150.962036
+
+Current status of the graph search:
+	Total states expanded: 2503853
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-14.61 + 19.18i),
+	Current size of the open set (enqueued states): 8393
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=2621.44, b=1.00, L=(-3.33 + -2.10i)
+
+A* found new homotopic class to goal:
+	L-value: (-3.33 + -2.10i)
+	cumulative length: 383.567383
+	g_image Riemann sum (accumulated uncertainty): 151.828125
+
+Current status of the graph search:
+	Total states expanded: 2529425
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-14.61 + 19.18i),	(-3.33 + -2.10i),
+	Current size of the open set (enqueued states): 8101
+Writing path to filepath ./test_dir/4_obst/alpha_it_tests38/params.json with key: a=2621.44, b=1.00, L=(12.78 + 11.14i)
+
+A* found new homotopic class to goal:
+	L-value: (12.78 + 11.14i)
+	cumulative length: 408.082550
+	g_image Riemann sum (accumulated uncertainty): 152.781158
+
+Current status of the graph search:
+	Total states expanded: 2556862
+	Homotopy classes currently evaluated for the goal vertex: 	(-30.71 + 5.94i),	(-14.61 + 19.18i),	(-3.33 + -2.10i),	(12.78 + 11.14i),
+	Current size of the open set (enqueued states): 7863
+
+A* terminated with the inputs:
+	(x_g, y_g) = (99.000000, 99.000000)
+	r = 0.050000, s = 0.200000
+	a = 2621.439941, b = 1.000000
+	float tolerance = 0.050000
+	absolute tolerance for homotopy classes: 0.100000
+	Maximum homotopy classes: 4
+	Target homotopy classes: 	(-30.71 + 5.94i),	(-3.33 + -2.10i),	(-3.33 + 4.19i),	(-19.43 + -9.05i),
+	Filled homotopy classes: 2
+	Maximum expandible states: 16000000
+	Total states expanded: 3460972
+	Current size of the open set (enqueued states): 0
+
+Time elapsed since invoking A_star_homotopies until end of execution:
+	7.45050 seconds
+
+
+Boundary optimization:  skipping homotopy class (-3.33 + 4.19i) / index 2, setting Backtrack_Path = NULL,  at iteration 4 becuase the homotopy class was not updated by A* (likely due to exceeding maximum expandible states),  with variable configuration parameter 2621.44
+
+Boundary optimization:  skipping homotopy class (-19.43 + -9.05i) / index 3, setting Backtrack_Path = NULL,  at iteration 4 becuase the homotopy class was not updated by A* (likely due to exceeding maximum expandible states),  with variable configuration parameter 2621.44
+
+Boundary optimization terminated as max_it = 4 was reached
+
+boundary_optimization terminated with inputs:
+	bound = 0.30; var_start = 0.01; var_mult = 64.00
+
+
+---------------- LATEX TABLES START ----------------
+
+\begin{table}[h!]
+\centering
+\begin{tabularx}{\textwidth}{|X|X|X|X|X|X|X|X|X|}
+\hline
+It & f.c. & v.c. & \multicolumn{2}{c|}{-30.71 + 5.94i} & \multicolumn{2}{c|}{-3.33 + -2.10i} & \multicolumn{2}{c|}{-3.33 + 4.19i} \\ \cline{4-9}
+& & & f.p.m. & v.p.m. & f.p.m. & v.p.m. & f.p.m. & v.p.m. \\ \hline
+0 & 1.00 & 0.00 & 288.33 & 233.23 & 305.67 & 266.57 & 331.09 & 283.72\\ \hline
+1 & 1.00 & 0.01 & 288.33 & 208.69 & 305.67 & 219.03 & 331.09 & 233.26\\ \hline
+2 & 1.00 & 0.64 & 299.58 & 179.00 & 318.90 & 184.42 & oob & oob\\ \hline
+3 & 1.00 & 40.96 & 357.69 & 150.03 & 380.20 & 151.87 & oob & oob\\ \hline
+4 & 1.00 & 2621.44 & 359.52 & 150.01 & 383.57 & 151.83 & oob & oob\\ \hline
+\end{tabularx}
+\caption{alpha_it_tests: alpha = 3.216666666666668; table 1}
+\label{tab:metrics_summary_1}
+\end{table}
+\begin{table}[h!]
+\centering
+\begin{tabularx}{\textwidth}{|X|X|X|X|X|}
+\hline
+It & f.c. & v.c. & \multicolumn{2}{c|}{-19.43 + -9.05i} \\ \cline{4-5}
+& & & f.p.m. & v.p.m. \\ \hline
+0 & 1.00 & 0.00 & 331.09 & 233.00\\ \hline
+1 & 1.00 & 0.01 & 331.09 & 182.33\\ \hline
+2 & 1.00 & 0.64 & 331.75 & 180.41\\ \hline
+3 & 1.00 & 40.96 & oob & oob\\ \hline
+4 & 1.00 & 2621.44 & oob & oob\\ \hline
+\end{tabularx}
+\caption{alpha_it_tests: alpha = 3.216666666666668; table 2}
+\label{tab:metrics_summary_2}
+\end{table}
+
+
+---------------- LATEX TABLES END ----------------
+

@@ -142,7 +142,7 @@ void expand_backtrack(Params *params, hom_class_t * hom_class) {
 
 }
 
-void write_path(hom_class_t * hom_class, Config * config){
+void write_path(hom_class_t * hom_class, Config * config, char * filepath){
 
     Backtrack_Path * bt = hom_class->backtrack;
     if (bt == NULL) return;
@@ -156,9 +156,9 @@ void write_path(hom_class_t * hom_class, Config * config){
         config->a, config->b, creal(hom_class->Lval), cimag(hom_class->Lval)
     );
     #ifdef AST_HC_DBG
-    printf("Writing path to ./params.json file with key: %s\n", Lval_string);
+    printf("Writing path to filepath %s with key: %s\n", filepath, Lval_string);
     #endif
-    write_json("./params.json", Lval_string, bt->point_list, bt->total_edges - 1, 2);
+    write_json(filepath, Lval_string, bt->point_list, bt->total_edges - 1, 2);
     free(Lval_string);
 }
 

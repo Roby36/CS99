@@ -6,6 +6,16 @@
 
 void A_star_homotopies(struct A_star_homotopies_args * args) 
 {
+    // NULL checks
+    if (args == NULL || args->params == NULL || args->config == NULL ||
+        args->h == NULL || args->c == NULL || args->F == NULL ||
+        args->target_hom_classes_ptr == NULL || args->json_filepath == NULL ||
+        args->params->g_image == NULL)
+    {
+        DEBUG_ERROR("failed NULL checks");
+        return;
+    }
+
     int expanded_states = 0;    // we consider a state expanded whenever it is dequeued from the closed set
     const int max_expandible_states = (args->max_expandible_states_mult) * (args->params->xs_steps) * (args->params->ys_steps);
     int filled_hom_classes = 0; 
@@ -39,11 +49,6 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
     // Flag current target homotopy classes as not updated
     if (!target_hom_classes_init) {
         unflag_homotopy_classes(*(args->target_hom_classes_ptr));
-    }
-
-    if (args->params->g_image == NULL) {
-        DEBUG_ERROR("params->g_image = NULL");
-        return;
     }
     
     // Convert start coordinates to integre grid coordinates
@@ -102,7 +107,7 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
         {      
             // expand, write to .json and log discovered path 
             expand_backtrack(args->params, curr_hom_class);
-            write_path(curr_hom_class, args->config); // write path to ./params.json
+            write_path(curr_hom_class, args->config, args->json_filepath); // write path to ./params.json
             #ifdef AST_HC_DBG
             char * B_str = complex_list_to_string(curr_hom_class->endpoint_vertex->hom_classes);
             printf(

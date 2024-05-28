@@ -1,7 +1,7 @@
 
 import sys
 import numpy as np
-import g_image as gi
+from params_utils import Params
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
@@ -31,10 +31,10 @@ def plot_base_rings(params, ax, ring_color='red'):
     whose parameters are stored in the params dictionary, and adds a plot of the resulting coordinates
     to the given axis object
     """
-    for e in params["elliptical_obstacles"]:  # NOTE: hard-code z_min = 0 and z_height = 0 here to impose the 2-d case
-        X1, Y1, Z1 = gi.generate_elliptical_ring(e[0], e[1], e[2], e[3], e[4])
+    for e in params["elliptical_obstacles"]:
+        X1, Y1, Z1 = Params.generate_elliptical_ring(e[0], e[1], e[2], e[3], e[4])
         ax.plot(X1, Y1, color=ring_color, linewidth=2)  # Adding the ring-like ellipse
-        ax.fill(X1, Y1, color=ring_color, alpha=1.0)  # Fill the ellipse with the specified color
+        ax.fill(X1, Y1, color=ring_color, alpha=1.0)    # Fill the ellipse with the specified color
 
 
 def plot_path(path, ax, color='orange', label=None, linewidth=1):
@@ -100,13 +100,15 @@ def plot_A_star_homotopies_output_paths(params, ax):
 
 """
 Main function of the module that generates the graphic instance using Matplotlib
+json_params: parameter dictionary extracted from json that contains the paths
+params_inst: current parameter instance to compute coarse version of g_image
 """
 def generate_final_graph(
-        params,
+        json_params,
+        X, Y, g_image_coarse,   # coarse data sets for the contour
         graph_title,
-        save_dir=None,  # Add parameter for directory to save the plot
+        save_dir=None,        # Add parameter for directory to save the plot
         filename='plot.png',  # Default filename for the saved plot
-        coarsing_factor = 10,
         input_figsize = (10,8)
     ):    
     # Directory handling
@@ -128,11 +130,7 @@ def generate_final_graph(
     # (2) Create main axis object
     ax = fig.add_subplot(111) # granularily create a set of INDEPENDENT axes
 
-    # (3) Eventually add further independent datasets to global axis object with plotting functions
-
-    # NOTE: Recompute separate coarser version of g_image to be graphed
-    X, Y = gi.compute_meshgrids(params, coarsing_factor)
-    g_image_coarse = gi.compute_g_image(params, X, Y)
+    # (3) Eventually add further independent datasets to global axis object with plotting functions    
 
     # Create a custom single-color colormap (e.g., blue reversed)
     colors = ["#0000ff", "#ffffff"]  # White to Blue gradient
@@ -144,17 +142,17 @@ def generate_final_graph(
     cmap = LinearSegmentedColormap.from_list("custom_gray", colors, N=100)
     """
 
-    # Apply the custom colormap with varying intensity
-    contour = ax.contourf(X, Y, np.array(g_image_coarse), cmap=cmap, levels=256, alpha=0.7)
+    # Plot contour with coarse meshgrids and g_image
+    contour = ax.contourf(X, Y, np.array(g_image_coarse), cmap=cmap, levels=1024, alpha=0.7)
     cbar = plt.colorbar(contour)
     cbar.set_label(r'\LARGE g-value')
 
-    # Plot the obstacles and paths at the last point so that they are on top
-    plot_base_rings(params, ax, "black") # Plot obstacles in black
-    plot_A_star_homotopies_output_paths(params, ax) # Plot all the homotopy paths returned by A*
+    # Plot the rest using the json dictionary
+    plot_base_rings(json_params, ax, "black") # Plot obstacles in black
+    plot_A_star_homotopies_output_paths(json_params, ax) # Plot all the homotopy paths returned by A*
 
-    ax.set_xlim(params['x_min'], params['x_max'])
-    ax.set_ylim(params['y_min'], params['y_max'])
+    ax.set_xlim(json_params['x_min'], json_params['x_max'])
+    ax.set_ylim(json_params['y_min'], json_params['y_max'])
 
     ax.set_xlabel(r'\LARGE X-axis')
     ax.set_ylabel(r'\LARGE Y-axis')
@@ -168,23 +166,4 @@ def generate_final_graph(
 
     return full_path  # Optional, return the path of the saved file for further use
 
-
-"""
-NOTE: This module assumes that the input .json file has already been populated with the g_image matrix  
-"""
-def main():
-
-    # Argument check
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <input_filepath> <graph_title>")
-        sys.exit(1)  # Exit the program indicating an error
-
-    input_filepath = sys.argv[1]
-    graph_title = sys.argv[2]
-    print(f"The input file path is: {input_filepath}")
-    params = gi.load_parameters(input_filepath)
-    generate_final_graph(params, graph_title, save_dir, "test_graph_img.png")
-
-if __name__ == '__main__':
-    main()
 

@@ -169,7 +169,7 @@ void expand_backtrack(Params *params, hom_class_t * hom_class);
  *  free_backtrack(hom_class);
  * 
  */
-void write_path(hom_class_t * hom_class, Config * config);
+void write_path(hom_class_t * hom_class, Config * config, char * filepath);
 
 /********************* free_backtrack *********************
  * 
