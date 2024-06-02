@@ -458,6 +458,7 @@ This module leverages function pointers to achieve type generality, allowing it 
 
 
 ## Obstacle Marker Module
+To optimize the markdown documentation for readability in environments where LaTeX cannot be rendered directly, such as GitHub, you can reformat the equations and related text to be more readable as plain text or prepared for conversion to images. Here is your document modified accordingly:
 
 ### Overview
 This module encapsulates complex analysis techniques to effectively manage homotopy classes in environments with obstacles. It utilizes a polynomial obstacle marker function, residues, and path integral calculations to uniquely identify paths based on their interaction with obstacles.
@@ -465,27 +466,40 @@ This module encapsulates complex analysis techniques to effectively manage homot
 ### Mathematical Formulation
 
 #### Obstacle Marker Polynomial
-The obstacle marker function, \( f_0(z) \), is chosen based on the polynomial:
-\[ f_0(z) = (z - BL)^a \cdot (z - TR)^b \]
-where:
-- \( z \) is the complex representation of a point in the plane.
-- \( BL \) and \( TR \) are the bottom-left and top-right corners of the operational area, respectively, treated as complex numbers.
-- \( a \) and \( b \) are integers that partition \( N-1 \), where \( N \) is the total number of obstacles.
+The obstacle marker function, f₀(z), is chosen based on the polynomial:
 
-This choice of polynomial is motivated by its ability to simplify the calculation of residues and integrals, with \( \zeta_i \) (centers of elliptical obstacles) serving as critical points that influence path differentiation.
+```
+f₀(z) = (z - BL)ᵃ * (z - TR)ᵇ
+```
+
+where:
+- `z` is the complex representation of a point in the plane.
+- `BL` and `TR` are the bottom-left and top-right corners of the operational area, respectively, treated as complex numbers.
+- `a` and `b` are integers that partition N-1, where N is the total number of obstacles.
+
+This choice of polynomial is motivated by its ability to simplify the calculation of residues and integrals, with ζᵢ (centers of elliptical obstacles) serving as critical points that influence path differentiation.
 
 #### Residue Computation
-The residue for each obstacle marker \( \zeta_l \) is calculated using the formula:
-\[ A_l = \frac{f_0(\zeta_l)}{\prod_{\substack{j=0 \\ j \neq l}}^N (\zeta_l - \zeta_j)} \]
-where \( \zeta_j \) are the complex representations of all obstacle markers. The product in the denominator computes the influence of all other obstacles on the specific marker \( \zeta_l \), excluding itself.
+The residue for each obstacle marker ζₗ is calculated using the formula:
+
+```
+Aₗ = f₀(ζₗ) / Π_{j=0, j ≠ l}^N (ζₗ - ζⱼ)
+```
+
+where ζⱼ are the complex representations of all obstacle markers. The product in the denominator computes the influence of all other obstacles on the specific marker ζₗ, excluding itself.
 
 #### Analytical Formula for L-Value Calculation
-The L-value between any two points \( z_1 \) and \( z_2 \) on the complex plane is computed as:
-\[ L(z_1, z_2) = \sum_{l=0}^N A_l \cdot \left( \log|z_2 - \zeta_l| - \log|z_1 - \zeta_l| + i (\arg(z_2 - \zeta_l) - \arg(z_1 - \zeta_l) + 2\pi k_l) \right) \]
+The L-value between any two points z₁ and z₂ on the complex plane is computed as:
+
+```
+L(z₁, z₂) = Σ_{l=0}^N Aₗ * [ log|z₂ - ζₗ| - log|z₁ - ζₗ| + i (arg(z₂ - ζₗ) - arg(z₁ - ζₗ) + 2πkₗ) ]
+```
+
 where:
-- \( A_l \) are the residues associated with each obstacle.
-- \( \arg \) and \( \log \) represent the argument and logarithm functions, respectively.
-- \( k_l \) is chosen to minimize the absolute value of the argument difference, ensuring it lies within \([- \pi, \pi]\).
+- Aₗ are the residues associated with each obstacle.
+- arg and log represent the argument and logarithm functions, respectively.
+- kₗ is chosen to minimize the absolute value of the argument difference, ensuring it lies within [-π, π].
+
 
 ### Implementation Details
 
