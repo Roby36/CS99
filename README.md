@@ -1,4 +1,98 @@
 
+
+
+## Cost and Heuristic Functions Module
+
+### Overview
+This module includes functions for calculating costs and heuristics necessary for pathfinding algorithms like A*. It offers precise methods for computing the distance and uncertainty accumulation along paths, as well as various heuristic estimates.
+
+### Functions
+
+#### `len`
+**Prototype:**
+```c
+float len(int x_1, int y_1, int x_2, int y_2, Params *params);
+```
+- **Description**: Calculates the absolute distance between two adjacent points on a grid, scaled to map units.
+- **Formula**: 
+  \[
+  \text{len} = s \cdot D_{\text{adjacent}}(x_1, y_1, x_2, y_2)
+  \]
+  Here, \( D_{\text{adjacent}} \) represents the Euclidean distance between the points, and \( s \) is the scaling factor from the `Params` struct.
+- **Parameters**:
+  - `x_1, y_1, x_2, y_2`: Coordinates of two adjacent points on the grid.
+  - `params`: Contains the scaling factor `s` for the grid size.
+- **Returns**: The distance between the points in map units.
+
+#### `g_image_riemann_sum`
+**Prototype:**
+```c
+float g_image_riemann_sum(int x_1, int y_1, int x_2, int y_2, Params *params);
+```
+- **Description**: Computes the Riemann sum of an uncertainty function `g` between two adjacent points.
+- **Formula**:
+  \[
+  U = r \cdot D_{\text{adjacent}}(x_1, y_1, x_2, y_2) \cdot \sum_{i=0}^{s/r} g_{\text{image}}[y_0 + i \cdot dy][x_0 + i \cdot dx]
+  \]
+  where \( r \) and \( s \) are scaling factors, \( D_{\text{adjacent}} \) is the distance function, and \( g_{\text{image}} \) contains precomputed values of the function `g`.
+- **Parameters**:
+  - `x_1, y_1, x_2, y_2`: Coordinates of two adjacent points.
+  - `params`: Contains scaling factors and the `g_image` matrix.
+- **Returns**: The Riemann sum contribution of taking a path integral of `g` between the points, scaled to map units.
+
+#### `edge_cost`
+**Prototype:**
+```c
+float edge_cost(int x_1, int y_1, int x_2, int y_2, Params *params, Config *config);
+```
+- **Description**: Combines the uncertainty accumulation and path length to compute the overall cost of moving between two points.
+- **Formula**:
+  \[
+  C = a \cdot U + b \cdot L
+  \]
+  where \( U \) is the uncertainty accumulation calculated by `g_image_riemann_sum`, \( L \) is the length from `len`, and \( a \) and \( b \) are coefficients from the `Config` struct.
+- **Parameters**:
+  - `x_1, y_1, x_2, y_2`: Coordinates of two adjacent points.
+  - `params`: Environment parameters used in sub-calculations.
+  - `config`: Contains the weights `a` and `b`.
+- **Returns**: The total cost of moving between the two points.
+
+#### `heuristic`
+**Prototype:**
+```c
+float heuristic(int x_n, int y_n, int x_g, int y_g, Params *params, Config *config);
+```
+- **Description**: Calculates a heuristic estimate of the cost from a current point to the goal, favoring diagonal movement.
+- **Formula**:
+  \[
+  H = b \cdot s \cdot ((\sqrt{2} - 1) \cdot \min(dx, dy) + \max(dx, dy))
+  \]
+  where \( dx \) and \( dy \) are the absolute differences in grid steps between the current point and the goal, \( s \) is the grid scaling factor, and \( b \) is the coefficient for path length in the cost function.
+- **Parameters**:
+  - `x_n, y_n`: Current point on the grid.
+  - `x_g, y_g`: Goal point.
+  - `params`: Contains scaling factors for the grid.
+  - `config`: Contains the weight `b` for the path length in the cost function.
+- **Returns**: The heuristic cost estimate from the
+
+ current point to the goal.
+
+#### `zero_heuristic`
+**Prototype:**
+```c
+float zero_heuristic(int x_n, int y_n, int x_g, int y_g, Params *params, Config *config);
+```
+- **Description**: Provides a zero-value heuristic, effectively transforming A* into Dijkstra's algorithm. This is used when an unbiased exploration of all paths is required.
+- **Parameters**:
+  - `x_n, y_n, x_g, y_g`: Coordinates for the current and goal points (used to match the function signature required by A*).
+  - `params` and `config`: Included to conform to the required function signature.
+- **Returns**: Always returns `0.0`.
+
+This documentation details how each function contributes to the pathfinding process, using precise mathematical formulas to clarify the computation of distances, costs, and heuristic estimates.
+
+
+
+
 ## Homotopy Classes Module
 
 ### Overview
@@ -366,7 +460,43 @@ This module leverages function pointers to achieve type generality, allowing it 
 ## Obstacle Marker Module
 
 ### Overview
-The Obstacle Marker module leverages complex analysis to calculate properties and interactions regarding obstacles in a given environment. It manages the calculation of path integrals and L-values which are essential for determining homotopy classes in path planning algorithms.
+This module encapsulates complex analysis techniques to effectively manage homotopy classes in environments with obstacles. It utilizes a polynomial obstacle marker function, residues, and path integral calculations to uniquely identify paths based on their interaction with obstacles.
+
+### Mathematical Formulation
+
+#### Obstacle Marker Polynomial
+The obstacle marker function, \( f_0(z) \), is chosen based on the polynomial:
+\[ f_0(z) = (z - BL)^a \cdot (z - TR)^b \]
+where:
+- \( z \) is the complex representation of a point in the plane.
+- \( BL \) and \( TR \) are the bottom-left and top-right corners of the operational area, respectively, treated as complex numbers.
+- \( a \) and \( b \) are integers that partition \( N-1 \), where \( N \) is the total number of obstacles.
+
+This choice of polynomial is motivated by its ability to simplify the calculation of residues and integrals, with \( \zeta_i \) (centers of elliptical obstacles) serving as critical points that influence path differentiation.
+
+#### Residue Computation
+The residue for each obstacle marker \( \zeta_l \) is calculated using the formula:
+\[ A_l = \frac{f_0(\zeta_l)}{\prod_{\substack{j=0 \\ j \neq l}}^N (\zeta_l - \zeta_j)} \]
+where \( \zeta_j \) are the complex representations of all obstacle markers. The product in the denominator computes the influence of all other obstacles on the specific marker \( \zeta_l \), excluding itself.
+
+#### Analytical Formula for L-Value Calculation
+The L-value between any two points \( z_1 \) and \( z_2 \) on the complex plane is computed as:
+\[ L(z_1, z_2) = \sum_{l=0}^N A_l \cdot \left( \log|z_2 - \zeta_l| - \log|z_1 - \zeta_l| + i (\arg(z_2 - \zeta_l) - \arg(z_1 - \zeta_l) + 2\pi k_l) \right) \]
+where:
+- \( A_l \) are the residues associated with each obstacle.
+- \( \arg \) and \( \log \) represent the argument and logarithm functions, respectively.
+- \( k_l \) is chosen to minimize the absolute value of the argument difference, ensuring it lies within \([- \pi, \pi]\).
+
+### Implementation Details
+
+The module defines a structure, `F`, which contains the parameters necessary for the computations:
+- `N`, `a`, `b`: Parameters defining the polynomial order and partitioning.
+- `BL`, `TR`: Complex numbers representing the operational area corners.
+- `obstacle_markers`: Dynamically allocated array of complex numbers representing the centers of elliptical obstacles.
+- `A`: Array storing computed residues.
+- `Lvals`: Four-dimensional array for storing precomputed L-values for grid points.
+
+This setup allows for efficient computation of path integrals and obstacles interaction by precomputing and reusing critical values like residues and L-values across different parts of the algorithm.
 
 ### Functions
 
