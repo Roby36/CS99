@@ -13,6 +13,44 @@
 
 typedef double complex Complex;
 
+/*********** Params *************
+ * Main struct holding all parameters extracted from .json file,
+ * which will be passed around all the modules to share the state of the environment 
+*/
+typedef struct {
+
+    float r;
+    float s;
+    float x_max;
+    float x_min;
+    float y_min;
+    float y_max;
+    float x_g;
+    float y_g;
+    float x_s;
+    float y_s;
+    float g_max;
+
+    int s_div_r;
+    int xs_steps;
+    int ys_steps;
+    int xr_steps;
+    int yr_steps;
+    int num_obstacles;
+    int num_obstacle_parameters;
+
+    float ** elliptical_obstacles;
+    float ** g_image;
+
+} Params;
+
+/**** Configuration parameters wrapper ****/
+typedef struct {
+    float a;
+    float b;
+} Config;
+
+
 /******** Macros ************/
 #define SQRT2 1.4142135623730951
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -64,43 +102,6 @@ typedef double complex Complex;
         strcpy((target), (source)); \
     } while (0)
 
-/*********** Params *************
- * Main struct holding all parameters extracted from .json file,
- * which will be passed around all the modules to share the state of the environment 
-*/
-typedef struct {
-
-    float r;
-    float s;
-    float x_max;
-    float x_min;
-    float y_min;
-    float y_max;
-    float x_g;
-    float y_g;
-    float x_s;
-    float y_s;
-    float g_max;
-
-    int s_div_r;
-    int xs_steps;
-    int ys_steps;
-    int xr_steps;
-    int yr_steps;
-    int num_obstacles;
-    int num_obstacle_parameters;
-
-    float ** elliptical_obstacles;
-    float ** g_image;
-
-} Params;
-
-/**** Configuration parameters wrapper ****/
-typedef struct {
-    float a;
-    float b;
-} Config;
-
 /********* inline utility functions **********/
 
 static inline int calculate_steps(float min, float max, float step_size) {
@@ -123,6 +124,7 @@ static inline bool is_accessible(Params * params, int x, int y, float float_tol)
     return (
         x >= 0 && y >= 0 &&
         x < params->xs_steps && y < params->ys_steps &&
+        params->g_image &&
         params->g_image[(params->s_div_r) * y][(params->s_div_r) * x] >= float_tol
     );
 

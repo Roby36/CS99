@@ -1,18 +1,21 @@
 
 #include "astar_homotopies.h"
 
-
 /****************** Main A* algorithm implementation **************************/
-
 void A_star_homotopies(struct A_star_homotopies_args * args) 
 {
-    // NULL checks
-    if (args == NULL || args->params == NULL || args->config == NULL ||
-        args->h == NULL || args->c == NULL || args->F == NULL ||
-        args->target_hom_classes_ptr == NULL || args->json_filepath == NULL ||
-        args->params->g_image == NULL)
+    // general NULL checks
+    if (A_STAR_ARGS_CHECK(args))
     {
-        DEBUG_ERROR("failed NULL checks");
+        DEBUG_ERROR("failed astar argument checks");
+        return;
+    }
+
+    // cost function check
+    if (args->config->a < 0.0f || args->config->b < 0.0 ||
+        (args->config->a == 0.0f && args->config->b == 0.0)) 
+    {
+        DEBUG_ERROR("Uniformly zero or negative cost function");
         return;
     }
 
@@ -27,20 +30,10 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
     gettimeofday(&start, NULL); // Start clock 
     #endif
 
-    #ifdef AST_HC_DBG
-    printf(
-        "\nA* invoked with the inputs:\n"
-        "\t(x_g, y_g) = (%f, %f)\n"
-        "\tr = %f, s = %f\n"
-        "\ta = %f, b = %f\n"
-        "\tfloat tolerance = %f\n"
-        "\tabsolute tolerance for homotopy classes: %f\n"
-        "\tMaximum homotopy classes: %d\n"
-        "\tMaximum expandible states: %d\n\n",
-    args->params->x_g, args->params->y_g, args->params->r, args->params->s, 
-    args->config->a, args->config->b, args->float_tol, args->abs_tol, args->max_hom_classes,
-    max_expandible_states
-    );
+    #ifdef AST_HC_DBG   // optional logging
+    printf("\nA* invoked with the inputs:\n");
+    print_A_star_homotopies_args(args);
+    printf("\tTotal maximum expandible states: %d\n\n", max_expandible_states);
     #endif
 
     // Determine if this will be an initialization run
@@ -51,7 +44,7 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
         unflag_homotopy_classes(*(args->target_hom_classes_ptr));
     }
     
-    // Convert start coordinates to integre grid coordinates
+    // Convert start coordinates to integer grid coordinates
     const int x_start_step = (int) (args->params->x_s - args->params->x_min) / args->params->s;
     const int x_goal_step  = (int) (args->params->x_g - args->params->x_min) / args->params->s;
     const int y_start_step = (int) (args->params->y_s - args->params->y_min) / args->params->s;
@@ -88,7 +81,7 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
     while (!open_set_is_empty(open_set)) {
 
         hom_class_t * curr_hom_class = dequeue_min(open_set);
-        curr_hom_class->is_evaluated = true; // dequeue homotopy class & add it to the closed set
+        curr_hom_class->is_evaluated = true; // add homotopy class to the closed set
         
         // maximum state cap: ideally should not be required for termination
         if (++expanded_states > max_expandible_states) {
@@ -108,21 +101,11 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
             // expand, write to .json and log discovered path 
             expand_backtrack(args->params, curr_hom_class);
             write_path(curr_hom_class, args->config, args->json_filepath); // write path to ./params.json
-            #ifdef AST_HC_DBG
-            char * B_str = complex_list_to_string(curr_hom_class->endpoint_vertex->hom_classes);
-            printf(
-                "\nA* found new homotopic class to goal:\n"
-                "\tL-value: (%.2f + %.2fi)\n"
-                "\tcumulative length: %f\n" 
-                "\tg_image Riemann sum (accumulated uncertainty): %f\n"
-                "\nCurrent status of the graph search:\n"
-                "\tTotal states expanded: %d\n"
-                "\tHomotopy classes currently evaluated for the goal vertex: %s\n"
-                "\tCurrent size of the open set (enqueued states): %d\n",
-            creal(curr_hom_class->Lval), cimag(curr_hom_class->Lval), curr_hom_class->backtrack->absolute_length,
-            curr_hom_class->backtrack->g_image_riemann_tot, expanded_states, B_str, open_set_size(open_set)
-            );
-            free(B_str);
+
+            #ifdef AST_HC_DBG   // optional logging flag
+            print_A_star_homotopies_goal_info(curr_hom_class);
+            printf("\tCurrent size of the open set (enqueued states): %d\n", open_set_size(open_set));
+            printf("\tTotal states expanded: %d\n", expanded_states);
             #endif
 
             // skip if there is no target class to update 
@@ -226,31 +209,23 @@ void A_star_homotopies(struct A_star_homotopies_args * args)
     // Handle initialization of target hom classes
     if (target_hom_classes_init) {    
         *(args->target_hom_classes_ptr) = S[y_goal_step][x_goal_step]->hom_classes; // write directly the discovered list
-        filled_hom_classes =  args->max_hom_classes;    // if we made it to here we can assume this
     }
 
-    // logging and cleaning up procedure
-    #ifdef AST_HC_DBG
-    char * hom_classes_str = complex_list_to_string(*(args->target_hom_classes_ptr));
+    // record how many homtoopy classes have been recorded throughout this run
+    args->filled_hom_classes = filled_hom_classes;
+
+    #ifdef AST_HC_DBG   // optional logging
+    printf("\nA* terminated with the inputs:\n");
+    print_A_star_homotopies_args(args);
     printf(
-        "\nA* terminated with the inputs:\n"
-        "\t(x_g, y_g) = (%f, %f)\n"
-        "\tr = %f, s = %f\n"
-        "\ta = %f, b = %f\n"
-        "\tfloat tolerance = %f\n"
-        "\tabsolute tolerance for homotopy classes: %f\n"
-        "\tMaximum homotopy classes: %d\n"
-        "\tTarget homotopy classes: %s\n"
         "\tFilled homotopy classes: %d\n"
         "\tMaximum expandible states: %d\n"
         "\tTotal states expanded: %d\n"
         "\tCurrent size of the open set (enqueued states): %d\n",
-    args->params->x_g, args->params->y_g, args->params->r, args->params->s, 
-    args->config->a, args->config->b, args->float_tol, args->abs_tol, args->max_hom_classes, hom_classes_str,
     filled_hom_classes, max_expandible_states, expanded_states, open_set_size(open_set) 
     );
-    free(hom_classes_str);
     #endif
+
     #ifdef ASTCLCK
     CALCULATE_ELAPSED_TIME(start, end, elapsed);
     printf(
@@ -314,6 +289,47 @@ void deallocate_grid(struct A_star_homotopies_args * args, hom_vertex_t *** S, b
     free(S);
 }
 
+void print_A_star_homotopies_args(struct A_star_homotopies_args * args) {
+    // assumes args are already NULL-checked
+    char * hom_classes_str = "NULL";
+    if (*(args->target_hom_classes_ptr) != NULL) {
+        hom_classes_str = complex_list_to_string(*(args->target_hom_classes_ptr));
+    }
+
+    printf(
+        "\t(x_g, y_g) = (%f, %f)\n"
+        "\tr = %f, s = %f\n"
+        "\ta = %f, b = %f\n"
+        "\tfloat tolerance = %f\n"
+        "\tAbsolute tolerance for homotopy classes: %f\n"
+        "\tMaximum homotopy classes: %d\n"
+        "\tTarget homotopy classes: %s\n",
+    args->params->x_g, args->params->y_g, args->params->r, args->params->s, 
+    args->config->a, args->config->b, args->float_tol, args->abs_tol, args->max_hom_classes,
+    hom_classes_str
+    );
+
+    if (strcmp(hom_classes_str, "NULL") != 0) {
+        free(hom_classes_str);
+    }
+}
+
+void print_A_star_homotopies_goal_info(hom_class_t * curr_hom_class) {
+    // assumes non-NULL curr_hom_class
+    char * B_str = complex_list_to_string(curr_hom_class->endpoint_vertex->hom_classes);
+    printf(
+        "\n\nA* found new homotopic class to goal:\n"
+        "\tL-value: (%.2f + %.2fi)\n"
+        "\tcumulative length: %f\n" 
+        "\tg_image Riemann sum (accumulated uncertainty): %f\n"
+        "\n\nCurrent status of the overall graph search:\n"
+        "\tHomotopy classes currently evaluated for the goal vertex: %s\n",
+    creal(curr_hom_class->Lval), cimag(curr_hom_class->Lval), curr_hom_class->backtrack->absolute_length,
+    curr_hom_class->backtrack->g_image_riemann_tot, B_str
+    );
+    free(B_str);
+}
+
 
 /*********** Unit testing area *****************
  * 
@@ -375,7 +391,7 @@ int main(int argc, char *argv[]) {
     #endif
 
     struct A_star_homotopies_args  * astar_args = malloc(sizeof(struct A_star_homotopies_args));
-/** NOTE: Ensure the inputs are properly updated as we change the struct!*/
+/** NOTE: Ensure the inputs here are properly updated as we change the struct!*/
     astar_args->params = params;
     astar_args->config = config;
     astar_args->h = zero_heuristic;
@@ -386,9 +402,10 @@ int main(int argc, char *argv[]) {
     astar_args->target_hom_classes_ptr = &target_hom_classes;
     astar_args->max_hom_classes = max_hom_classes;
     astar_args->max_expandible_states_mult = max_expandible_states_mult;
+    astar_args->json_filepath = input_json_path;
 
 /* Input initialization complete: now invoking the main function */
-    // test updating target_hom_classes with a couple iterations
+    // usage example of iterative calls of target_hom_classes 
     for (int i = 0; i < 4; i++) {
         A_star_homotopies(astar_args);
         // Tweak the cost function to change the order in which homotopy classes are discovered

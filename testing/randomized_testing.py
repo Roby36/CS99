@@ -172,9 +172,5 @@ def alpha_it_tests(bo_bin_path, test_output_directory, num_obstacles, max_hom_cl
 
 
 
-    
-
-
-
 if __name__ == '__main__':
     main()

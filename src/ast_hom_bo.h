@@ -88,6 +88,13 @@ void bo_clean_up(
 float * g_image_getter(Backtrack_Path * bt);
 float * path_length_getter(Backtrack_Path * bt);
 
-
+/***************    MACROS  **************/
+#define BO_ARGS_CHECK(astar_args, bo) \
+        (!bo || !astar_args || \
+        !bo->var_config || !bo->fix_config || !bo->var_path_met || !bo->fix_path_met || \
+        bo->bound <= 0.00 || bo->var_start <= 0.00 || bo->var_mult <= 1.00 || bo->scale_fact <= 0.00 || \
+        !bo->table_title || \
+        astar_args->max_hom_classes < 0 /* boundary_optimization leads to unexpected behaviour when max_hom_classes negative */)
+    
 
 

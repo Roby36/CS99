@@ -4,8 +4,8 @@
 /* Static Helpers */
 static char * store_file(const char * file_name);
 static void print_matrix_to_file(FILE *fp, const char* key, float** matrix, int rows, int cols);
-static void free_float_matrix(float ** M, int rows, int columns);
-static float ** extract_float_matrix(cJSON *json, char *key);
+static void free_float_matrix(float ** M, int rows);
+static float ** extract_float_matrix(cJSON *json, char *key, int expected_rows, int expected_cols);
 static float extract_float(cJSON *json, char *key);
 static int extract_int(cJSON *json, char *key);
 
@@ -18,76 +18,62 @@ static int extract_int(cJSON *json, char *key);
  * NOTE: function returns malloc'd matrix, which the caller 
  *       is then responsible to free by invoking free_float_matrix
  */
-float ** extract_float_matrix(cJSON *json, char *key) {
-    // Find the JSON array using the provided key
+float **extract_float_matrix(cJSON *json, char *key, int expected_rows, int expected_cols) {
     cJSON *matrix_json = cJSON_GetObjectItemCaseSensitive(json, key);
-    
-    // Check if the matrix key exists and is an array
     if (!cJSON_IsArray(matrix_json)) {
         fprintf(stderr, "Error: JSON key '%s' is not an array or does not exist\n", key);
         return NULL;
     }
-    
-    // Determine the number of rows in the matrix
     int num_rows = cJSON_GetArraySize(matrix_json);
-    
-    // Allocate memory for the matrix
+    if (num_rows != expected_rows) {
+        fprintf(stderr, "Error: Matrix '%s' has incorrect number of rows (expected %d, got %d)\n", key, expected_rows, num_rows);
+        return NULL;
+    }
+
     float **matrix = malloc(num_rows * sizeof(float *));
     if (!matrix) {
         fprintf(stderr, "Error: Failed to allocate memory for matrix rows\n");
         return NULL;
     }
-    
-    // Iterate over each row of the matrix
+
     for (int i = 0; i < num_rows; i++) {
-        // Get the JSON array that represents the current row
         cJSON *row_json = cJSON_GetArrayItem(matrix_json, i);
         if (!cJSON_IsArray(row_json)) {
             fprintf(stderr, "Error: Row %d is not an array\n", i);
-            // Free any previously allocated rows
-            for (int j = 0; j < i; j++) {
-                free(matrix[j]);
-            }
-            free(matrix);
+            free_float_matrix(matrix, i);
             return NULL;
         }
 
         int num_cols = cJSON_GetArraySize(row_json);
-        
-        // Allocate memory for this row
+        if (num_cols != expected_cols) {
+            fprintf(stderr, "Error: Matrix '%s' row %d has incorrect number of columns (expected %d, got %d)\n", key, i, expected_cols, num_cols);
+            free_float_matrix(matrix, i);
+            return NULL;
+        }
+
         matrix[i] = malloc(num_cols * sizeof(float));
         if (!matrix[i]) {
             fprintf(stderr, "Error: Failed to allocate memory for matrix row %d\n", i);
-            // Free any previously allocated rows and the matrix itself
-            for (int j = 0; j < i; j++) {
-                free(matrix[j]);
-            }
-            free(matrix);
+            free_float_matrix(matrix, i);
             return NULL;
         }
-        
-        // Iterate over each column in the row
+
         for (int j = 0; j < num_cols; j++) {
-            // Get the value at the current position
             cJSON *value_json = cJSON_GetArrayItem(row_json, j);
             if (!cJSON_IsNumber(value_json)) {
                 fprintf(stderr, "Error: Non-numeric value in matrix at row %d, col %d\n", i, j);
-                // Free any previously allocated rows and the matrix itself
-                for (int k = 0; k <= i; k++) {
-                    free(matrix[k]);
-                }
-                free(matrix);
+                free_float_matrix(matrix, i + 1);
                 return NULL;
             }
-            
-            // Store the value in the matrix
             matrix[i][j] = (float)cJSON_GetNumberValue(value_json);
         }
     }
-    
-    // Return the constructed matrix
+
     return matrix;
 }
+
+
+
 
 /************** extract_float ****************
  * 
@@ -193,8 +179,8 @@ Params * load_json(const char * file_name) {
     params->num_obstacle_parameters = extract_int(json, "num_obstacle_parameters");
 
     // Extract matrices
-    params->g_image              = extract_float_matrix(json,  "g_image");
-    params->elliptical_obstacles = extract_float_matrix(json,  "elliptical_obstacles");
+    params->g_image              = extract_float_matrix(json,  "g_image", params->xr_steps, params->xr_steps);
+    params->elliptical_obstacles = extract_float_matrix(json,  "elliptical_obstacles", params->num_obstacles, params->num_obstacle_parameters);
     
     // Clean-up
     cJSON_Delete(json);
@@ -213,13 +199,11 @@ void free_params(Params * params) {
 
     free_float_matrix(
         params->g_image,
-        calculate_steps(params->y_min, params->y_max, params->r),
-        calculate_steps(params->x_min, params->x_max, params->r)
+        calculate_steps(params->y_min, params->y_max, params->r)
     ); 
     free_float_matrix(
         params->elliptical_obstacles,
-        params->num_obstacles,
-        params->num_obstacle_parameters
+        params->num_obstacles
     );
     free(params);
 }
@@ -355,7 +339,7 @@ void write_json(const char* file_path, const char * key, float ** matrix, int ro
  * 
  * Frees 2-dimensional matrix of given rows and columns.
 */
-void free_float_matrix(float **M, int rows, int columns) {
+void free_float_matrix(float **M, int rows) {
     if (M != NULL) {
         for (int i = 0; i < rows; i++) {
             free(M[i]);  // Free each row

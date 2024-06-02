@@ -1,11 +1,15 @@
 
 #include "ast_hom_bo.h"
 
-
 void boundary_optimization(
     struct A_star_homotopies_args * astar_args,
     struct BO_Params * bo) 
 {
+    if (BO_ARGS_CHECK(astar_args, bo)) {
+        DEBUG_ERROR("boundary_optimization failed argument check");
+        return;
+    }
+
     bool homotopy_classes_updated; // flag signaling whether any homotopic classes have been updated, thus whether further iterations are still needed
     int curr_hom_index;
 
@@ -29,14 +33,21 @@ void boundary_optimization(
         bo->fix_config_vals[bo->curr_it] = *(bo->fix_config);
         bo->var_config_vals[bo->curr_it] = *(bo->var_config);
 
-        // Allocate arrays of path pointers for each homotopy class of this iteration
+        // Check documentation in astar_homotopies.h to see how homotopy class lists are updated in place        
+        A_star_homotopies(astar_args); 
+
+        // Allocate arrays of path pointers for each homotopy class filled by A* 
         bo->bt_paths[bo->curr_it] = malloc((astar_args->max_hom_classes) * sizeof(Backtrack_Path *));
 
-        // Check documentation in astar_homotopies.h to see how homotopy class lists are updated in place        
-        A_star_homotopies(astar_args);
-        
+        // Check successful return
+        hom_classes_list_t * target_hom_classes = *(astar_args->target_hom_classes_ptr);
+        if (target_hom_classes == NULL) {
+            DEBUG_ERROR("A star returned NULL homotopy classes list, terminating boundary_optimization procedure");
+            return;
+        }
+
         // Update each homotopy class within the arrays with the updated path metrics from A*
-        hom_class_t * hom_class_it = (*(astar_args->target_hom_classes_ptr))->head;
+        hom_class_t * hom_class_it = target_hom_classes->head;
         curr_hom_index = 0;
         homotopy_classes_updated = false; 
 
@@ -134,10 +145,15 @@ void print_LaTex_table(
     struct BO_Params * bo,
     char * table_title)
 {
+    hom_classes_list_t * target_hom_classes = *(astar_args->target_hom_classes_ptr);
+    if (target_hom_classes == NULL) {
+        DEBUG_ERROR("NULL reference to homotopy classes list");
+        return;
+    }
+
     printf("\n\n---------------- LATEX TABLES START ----------------\n\n");
-    hom_class_t *hom_class_it = (*(astar_args->target_hom_classes_ptr))->head;
+    hom_class_t *hom_class_it = target_hom_classes->head;
     int curr_hom_index = 0; /** NOTE: This variable was already used previously at this scope */
-    int total_hom_classes = astar_args->max_hom_classes; // Assuming this gives the total number of homotopy classes
     int table_count = 0;
 
     while (hom_class_it != NULL) {

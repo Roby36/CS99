@@ -42,6 +42,10 @@ struct F {
  *       full public constructor initialize_obstacle_marker_func_params later 
  */
 static void extract_obstacle_marker_func_params(F_t * F) {
+    if (!F || !F->params || !F->params->elliptical_obstacles) {
+        DEBUG_ERROR("NULL-checks failed for extract_obstacle_marker_func_params");
+        return;
+    }
 
     F->N = F->params->num_obstacles;
     F->BL = CMPLX(F->params->x_min, F->params->y_min);

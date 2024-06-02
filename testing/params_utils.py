@@ -206,3 +206,39 @@ class Params:
 
 """ class Params end """
 
+
+
+
+
+""" Unit test, to only create random .json configurations """
+def main():
+    import graphing_utils as gu 
+    test_json = "./params_test.json"
+    # Generate random environment parameters
+
+    params_inst = Params()
+    Params.s = 1.0     # coarser grid only for testig purposes
+    Params.r = 1.0 / 4 
+    params_inst.generate_random_obstacles(
+        num_obstacles = 6, 
+        obst_size_mean = 0.20,
+        alpha_fixed = 2.0, 
+        randomized_start_goal = False, 
+        obst_cent_c = 4, 
+        obst_size_c = 10
+    )
+
+    X, Y = Params.compute_meshgrids(1.0)    # full-resolution meshgrid and g_image
+    params_inst.compute_g_image(X, Y)
+    params_inst.save_to_json(test_json)     # unflag if you just want to graph existing .json file
+
+    params_dict = Params.load_parameters(test_json)
+    gu.generate_final_graph(params_dict, X, Y, params_dict["g_image"], "plot_title", "./", "test_plot")
+
+
+
+
+if __name__ == '__main__':
+    main()
+
+

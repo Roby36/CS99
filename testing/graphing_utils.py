@@ -143,7 +143,7 @@ def generate_final_graph(
     """
 
     # Plot contour with coarse meshgrids and g_image
-    contour = ax.contourf(X, Y, np.array(g_image_coarse), cmap=cmap, levels=1024, alpha=0.7)
+    contour = ax.contourf(X, Y, np.array(g_image_coarse), cmap=cmap, levels=512, alpha=0.7)
     cbar = plt.colorbar(contour)
     cbar.set_label(r'\LARGE g-value')
 
