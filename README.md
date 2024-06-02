@@ -6,28 +6,35 @@
 The `boundary_optimization` function is designed to explore the trade-offs between competing measures in pathfinding, such as safety versus speed, by adjusting the coefficients of the cost function. This process simplifies the optimization problem to a single variable by fixing one coefficient at a constant value (1.0) and systematically varying the other. It iteratively increases the variable coefficient, monitoring the effects on path measures for different homotopy classes. The function continues this adjustment until the increase in the fixed path measure exceeds a predefined threshold, documenting how changes in cost coefficients influence the resulting paths. This approach is crucial in scenarios where balancing different pathfinding costs is essential, providing a structured method to investigate and record optimal paths under varying conditions.
 
 #### Inputs
+- **`astar_args`**: Parameters for running the A* algorithm, including environment details and function pointers for heuristics and cost calculations.
+  - `Params`: Contains environmental data such as grid dimensions and obstacle locations.
+  - `Config`: Stores weights for uncertainty and path length in the cost function.
+  - `heuristic function pointer`: Estimates the cost from the current node to the goal.
+  - `cost function pointer`: Calculates the actual cost between two nodes.
+  - `float_tol`: Tolerance for floating-point comparisons.
+  - Additional homotopy class specific parameters:
+    - `abs_tol`: Tolerance for comparing real and imaginary components of complex numbers.
+    - `F_t`: Parameters for the obstacle marker function.
+    - `target_hom_classes_ptr`: Pointer to the list of target homotopy classes for updates.
+    - `max_hom_classes`: Maximum number of homotopy classes targeted.
+    - `json_filepath`: File path for logging paths.
+- **`bo`**: Parameters specific to the boundary optimization process, including settings for adjusting the cost function coefficients and recording optimization results.
+  - `var_config`: Pointer to the variable configuration parameter of the cost function.
+  - `fix_config`: Pointer to the fixed configuration parameter of the cost function, set to 1.0.
+  - `var_path_met`: Function to retrieve the variable path measure from a path structure.
+  - `fix_path_met`: Function to retrieve the fixed path measure from a path structure.
+  - `bound`: Maximum permissible increase in the fixed path measure relative to its initial value.
+  - `var_start`: Starting value for the variable configuration parameter.
+  - `var_mult`: Multiplier for incrementing the variable configuration parameter in each iteration.
+  - `scale_fact`: Scales the magnitudes of the fixed and variable parameters while maintaining their ratios.
+  - `MAX_IT`: Maximum number of iterations for the optimization.
+  - `table_title`: Title for the LaTeX table output.
 
-##### `astar_args`
-- **Description**: Parameters required to run the A* algorithm, tailored to environments with homotopy considerations. This includes environmental details, pointers to cost and heuristic functions, and settings specific to A* execution such as tolerance values and pathfinding constraints.
-
-##### `bo`
-- **Description**: Parameters specific to the boundary optimization process, including the manipulation of cost function coefficients and the recording of optimization results.
-- **Components**:
-  - **Variable Configuration**: The coefficient of the cost function adjusted during the optimization to study its impact on path measures.
-  - **Fixed Configuration**: The coefficient of the cost function that remains constant at a value of 1.0 throughout the optimization.
-  - **Variable Path Measure Getter**: Retrieves the variable path measure from a path structure.
-  - **Fixed Path Measure Getter**: Retrieves the fixed path measure from a path structure.
-  - **Boundary**: The maximum acceptable percentage increase of the fixed path measure relative to its initial value that allows a path to remain admissible.
-  - **Variable Start Value**: The starting value for the variable configuration parameter.
-  - **Variable Multiplier**: Applied to the variable configuration parameter between iterations to increment its value.
-  - **Scale Factor**: Adjusts the magnitudes of both fixed and variable parameters while maintaining their relative proportions.
-  - **Maximum Iterations**: The maximum number of iterations for the optimization process.
-  - **Table Title**: Used for labeling the output in the generated LaTeX table.
-- **Output Components**:
-  - **Paths Array**: Stores optimal paths for each homotopy class for each iteration.
-  - **Fixed Configuration Values**: Records the values of the fixed configuration parameter at each iteration.
-  - **Variable Configuration Values**: Records the values of the variable configuration parameter at each iteration.
-  - **Iteration Counter**: Stores the number of iterations performed by the algorithm.
+### Outputs
+- **`bt_paths`**: Stores optimal paths for each homotopy class for each iteration.
+- **`fix_config_vals`**: Records the values of the fixed configuration parameter at each iteration.
+- **`var_config_vals`**: Records the values of the variable configuration parameter at each iteration.
+- **`curr_it`**: Stores the number of iterations performed by the algorithm.
 
 
 ### A_star_homotopies 
