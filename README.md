@@ -1,6 +1,4 @@
 
-
-
 ## Homotopy Classes Module
 
 ### Overview
@@ -103,6 +101,109 @@ This module is used extensively in pathfinding algorithms where paths must be di
 
 This documentation should be integrated with specific details on how each function interacts with other modules, especially in terms of data handling and memory management, to ensure that the system operates efficiently and correctly.
 
+
+
+
+## Homotopy Classes List Module
+
+### Overview
+The `hom_classes_list` module implements a simple linked list to manage homotopy classes efficiently. Each homotopy class is linked via a `next` pointer, forming a chain that represents possible paths through a computational graph. The list manages insertion based on a comparison function, ensuring that only the best (according to a given metric, usually `f_score`) homotopy classes are retained up to a predefined capacity.
+
+### Data Structure
+
+#### `hom_classes_list`
+- **Description**: Manages a linked list of homotopy classes.
+- **Fields**:
+  - `hom_class_t *head`: Pointer to the first homotopy class in the list.
+  - `int capacity`: The maximum number of homotopy classes the list can hold.
+  - `int size`: Current number of homotopy classes in the list.
+  - `bool (*less_than)(hom_class_t *, hom_class_t *)`: Pointer to a function that defines the sorting criterion of homotopy classes.
+
+### Functions
+
+#### `hom_classes_list_new`
+**Prototype**:
+```c
+hom_classes_list_t *hom_classes_list_new(int capacity, bool (*less_than)(hom_class_t *, hom_class_t *));
+```
+- **Description**: Initializes a new list for managing homotopy classes with a specified capacity and comparison function.
+- **Parameters**:
+  - `capacity`: The maximum number of homotopy classes the list can hold.
+  - `less_than`: Function to compare two homotopy classes; determines the sorting and retention of classes in the list.
+- **Returns**: A pointer to the newly created `hom_classes_list` or `NULL` if memory allocation fails.
+
+#### `free_hom_classes_list`
+**Prototype**:
+```c
+void free_hom_classes_list(hom_classes_list_t *hom_classes_list);
+```
+- **Description**: Frees all memory associated with a `hom_classes_list`, including all homotopy classes it contains.
+- **Parameters**:
+  - `hom_classes_list`: Pointer to the list to be freed.
+- **Note**: This function is responsible for freeing all `hom_class_t` objects in the list. The caller must ensure that no double frees occur by managing the homotopy classes not in the list.
+
+#### `hom_class_get`
+**Prototype**:
+```c
+hom_class_t *hom_class_get(hom_classes_list_t *hom_classes_list, Complex Lval, double abs_tol);
+```
+- **Description**: Searches for a homotopy class in the list that matches a given complex L-value within a specified tolerance.
+- **Parameters**:
+  - `hom_classes_list`: The list to search.
+  - `Lval`: The L-value descriptor of the homotopy class.
+  - `abs_tol`: The absolute tolerance for comparing L-values.
+- **Returns**: Pointer to the homotopy class if found; `NULL` otherwise.
+
+#### `insert_hom_class_sorted`
+**Prototype**:
+```c
+bool insert_hom_class_sorted(hom_classes_list_t *hom_classes_list, hom_class_t *hom_class, double abs_tol, hom_class_t **truncated);
+```
+- **Description**: Inserts a new homotopy class into the list in a sorted order based on the `less_than` function, maintaining the list's capacity.
+- **Parameters**:
+  - `hom_classes_list`: The list into which the homotopy class is to be inserted.
+  - `hom_class`: The homotopy class to insert.
+  - `abs_tol`: Tolerance used to check uniqueness of the new homotopy class in the list.
+  - `truncated`: Outputs the homotopy class that was removed from the list to maintain the capacity, if any.
+- **Returns**: `true` if the class was inserted; `false` otherwise. If `false`, `truncated` will be `NULL`.
+
+#### `complex_list_to_string`
+**Prototype**:
+```c
+char* complex_list_to_string(hom_classes_list_t *list);
+```
+- **Description**: Converts the list of homotopy classes to a string representation.
+- **Parameters**:
+  - `list`: The homotopy class list to convert.
+- **Returns**: A dynamically allocated string representing the list. The caller is responsible for freeing this string.
+
+#### `unflag_homotopy_classes`
+**Prototype**:
+```c
+void unflag_homotopy_classes(hom_classes_list_t *list);
+```
+- **Description**: Resets the `updated` flag on all homotopy classes in the list, typically used to mark classes that have not been processed in the current iteration of an algorithm.
+- **Parameters**:
+  - `list`: The list of homot
+
+opy classes to update.
+
+### Usage Example
+This module is typically used in pathfinding algorithms where paths are differentiated based on their traversal of an environment with obstacles. The list manages these paths, ensuring efficient operations by maintaining only the most promising paths according to a predefined metric.
+
+```c
+hom_classes_list_t *list = hom_classes_list_new(10, g_score_compare);
+hom_class_t *new_class = hom_class_new(some_vertex, some_lval);
+hom_class_t *truncated_class;
+if (insert_hom_class_sorted(list, new_class, 0.01, &truncated_class)) {
+    if (truncated_class) {
+        hom_class_free(truncated_class);
+    }
+}
+free_hom_classes_list(list);
+```
+
+This documentation provides a clear overview of how to integrate and use the `hom_classes_list` module in larger computational frameworks, especially those dealing with complex pathfinding and graph traversal scenarios.
 
 
 
