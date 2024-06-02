@@ -1,8 +1,162 @@
 
 
-Based on the `obstacle_marker.h` interface and the provided implementation, here is a concise and enhanced Markdown documentation for the main public functions of the "obstacle_marker" module. I'll also comment on the accuracy of existing comments in the code.
 
-## Obstacle Marker Module Documentation
+
+## Minimum Heap Priority Queue Module
+
+### Overview
+The Open Set module implements a priority queue using a min-heap structure, designed to be generic to accommodate different data types. It's primarily intended for use in pathfinding algorithms like A*, where elements (either vertices or homotopy class objects) are prioritized by a heuristic score (`f_score`).
+
+### Data Structures
+- **`open_set_t`**: Represents the priority queue (open set). Holds an array of `minheap_node` pointers, the size of the queue, its capacity, and accessor functions for node manipulation.
+- **`minheap_node`**: Represents a node in the min-heap. Contains a generic pointer (`void *`) to the data, a float key for priority comparison, and an index tracking the node's position in the heap.
+
+### Public Functions
+
+#### `open_set_new`
+**Prototype:**
+```c
+open_set_t *open_set_new(float (* get_f_score) (void *), void (* set_minheap_node) (void *, minheap_node *));
+```
+
+**Description:**
+Initializes a new open set (priority queue). The function pointers provided allow the heap to operate generically on any data type that implements these interfaces.
+
+**Parameters:**
+- `get_f_score`: Function to retrieve the `f_score` from the data.
+- `set_minheap_node`: Function to associate a minheap node with the data.
+
+**Returns:**
+- A pointer to an initialized `open_set_t` structure. Returns `NULL` if initialization fails.
+
+**Example Usage:**
+```c
+open_set_t *os = open_set_new(hom_class_get_f_score, hom_class_set_minheap_node);
+```
+
+#### `free_open_set`
+**Prototype:**
+```c
+void free_open_set(open_set_t *set);
+```
+
+**Description:**
+Frees all memory associated with an `open_set_t` structure, including its nodes. It does not free the data within the nodes, which must be managed externally.
+
+**Parameters:**
+- `set`: Pointer to an `open_set_t` structure to be freed.
+
+**Returns:**
+- None.
+
+**Example Usage:**
+```c
+free_open_set(os);
+```
+
+#### `insert_sorted`
+**Prototype:**
+```c
+void insert_sorted(open_set_t *set, void * data);
+```
+
+**Description:**
+Inserts an element into the heap while maintaining the heap property. The element is added based on its `f_score` determined by the `get_f_score` function.
+
+**Parameters:**
+- `set`: Pointer to the `open_set_t`.
+- `data`: Generic pointer to the data to be inserted.
+
+**Returns:**
+- None.
+
+#### `dequeue_min`
+**Prototype:**
+```c
+void * dequeue_min(open_set_t *set);
+```
+
+**Description:**
+Removes and returns the element with the minimum `f_score` from the heap. This operation also maintains the heap property post-deletion.
+
+**Parameters:**
+- `set`: Pointer to the `open_set_t`.
+
+**Returns:**
+- Generic pointer to the data with the minimum `f_score`. Returns `NULL` if the heap is empty.
+
+#### `decrease_key`
+**Prototype:**
+```c
+void decrease_key(open_set_t *set, minheap_node *node, float new_key);
+```
+
+**Description:**
+Decreases the `f_score` of a specific element in the heap and reorders the heap to maintain the heap property. This function is critical for pathfinding algorithms where the cost to reach a node may decrease as more paths are evaluated.
+
+**Parameters:**
+- `set`: Pointer to the `open_set_t`.
+- `node`: Pointer to the `minheap_node` whose key is to be decreased.
+- `new_key`: The new key value.
+
+**Returns:**
+- None.
+
+#### `remove_from_open_set`
+**Prototype:**
+```c
+void remove_from_open_set(open_set_t *set, minheap_node *node);
+```
+
+**Description:**
+Removes a specific element from the heap. This function handles the removal internally and maintains the heap property afterward.
+
+**Parameters:**
+- `set`: Pointer to the `open_set_t`.
+- `node`: Pointer to the `minheap_node` to be removed.
+
+**Returns:**
+- None.
+
+### Simple Getters
+
+#### `open_set_is_empty`
+**Prototype:**
+```c
+bool open_set_is_empty(open_set_t *set);
+```
+
+**Description:**
+Checks if the open set is empty.
+
+**Parameters:**
+- `set`: Pointer to the `open_set_t`.
+
+**Returns:**
+- `true` if the open set is empty, `false` otherwise.
+
+#### `open_set_size`
+**Prototype:**
+
+
+```c
+int open_set_size(open_set_t * set);
+```
+
+**Description:**
+Returns the number of elements in the open set.
+
+**Parameters:**
+- `set`: Pointer to the `open_set_t`.
+
+**Returns:**
+- The number of elements in the open set.
+
+### Notes on Implementation
+This module leverages function pointers to achieve type generality, allowing it to be used with any data type that implements the required interface. The use of dynamic memory allocation and careful management of indices and keys allows the heap to operate efficiently even as elements are added, removed, or updated.
+
+
+## Obstacle Marker Module
 
 ### Overview
 The Obstacle Marker module leverages complex analysis to calculate properties and interactions regarding obstacles in a given environment. It manages the calculation of path integrals and L-values which are essential for determining homotopy classes in path planning algorithms.
