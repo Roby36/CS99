@@ -1,4 +1,73 @@
 
+### Build Instructions
+
+To build and run the `boundary_optimization` program and various unit tests, follow the detailed steps outlined below. These instructions assume you have GCC installed on your system and are using a Unix-like operating system.
+
+#### Prerequisites
+- GCC compiler
+- Make utility
+
+#### Building the Project
+
+1. **Compile the Main Program**:
+   - The main binary `boundary_optimization` can be compiled using the provided Makefile. This will also build all required dependencies. To compile, navigate to the root directory of the project and run:
+     ```sh
+     make boundary_optimizations
+     ```
+   - This command compiles the main application along with all its dependencies, defined in the Makefile under the `SOURCES` and `BO_FILES` variables. The output binary is placed in the `./bin` directory.
+
+2. **Compile Unit Tests**:
+   - Several unit tests are available for different modules of the project. Each test can be compiled using specific Makefile targets:
+     - **A* Algorithm Unit Test**:
+       ```sh
+       make astar_ut
+       ```
+     - **Parser Unit Test**:
+       ```sh
+       make parser_ut
+       ```
+     - **Open Set (Priority Queue) Unit Test**:
+       ```sh
+       make open_set_ut
+       ```
+     - **Obstacle Marker Unit Test**:
+       ```sh
+       make obstacle_marker_ut
+       ```
+     - **Homotopy Classes Unit Test**:
+       ```sh
+       make hom_classes_ut
+       ```
+
+3. **Running the Binaries**:
+   - After compilation, binaries for the main program and unit tests can be found in the `./bin` directory. To run the main `boundary_optimization` program, use the following command format:
+     ```sh
+     ./bin/boundary_optimizations <input_json_path> <table_title> <float_tol> <bound> <var_mult> <MAX_IT> <max_expandible_states_mult> <max_hom_classes>
+     ```
+   - Replace the placeholders with actual values:
+     - `<input_json_path>`: Path to the JSON file containing input parameters.
+     - `<table_title>`: Title for the output LaTeX table.
+     - `<float_tol>`: Floating point tolerance used in calculations.
+     - `<bound>`: Maximum admissible percentage for the fixed path metric.
+     - `<var_mult>`: Multiplier for the variable configuration parameter between iterations.
+     - `<MAX_IT>`: Maximum number of iterations or runs of A*.
+     - `<max_expandible_states_mult>`: Multiplier determining the maximum number of states that can be expanded.
+     - `<max_hom_classes>`: Maximum number of homotopy classes to search.
+
+#### Cleaning Up
+- To clean up the build artifacts and remove all binaries, use the `clean` target:
+  ```sh
+  make clean
+  ```
+  This command removes all compiled binaries and intermediate files from the `./bin` directory, ensuring a clean state for future builds.
+
+### Additional Information
+- The Makefile uses various flags to enable detailed debugging and logging:
+  - `ASTCLCK`, `LVALCLCK`, and `AST_HC_DBG` for detailed checks and debug outputs during development.
+- Customization can be achieved by modifying the CFLAGS and LFLAGS in the Makefile to adjust include paths and define additional preprocessor symbols.
+
+By following these instructions, you should be able to compile and run the `boundary_optimizations` program and its associated unit tests effectively, adjusting parameters as necessary for specific runs.
+
 
 ### boundary_optimization 
 
