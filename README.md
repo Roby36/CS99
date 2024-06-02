@@ -1,6 +1,111 @@
 
 
 
+## Homotopy Classes Module
+
+### Overview
+The Homotopy Classes module provides data structures and functions for managing homotopy classes associated with vertices in a computational graph. These classes are critical for pathfinding in environments with obstacles, as they allow differentiating paths based on the topological constraints imposed by obstacles.
+
+### Data Structures
+
+#### `hom_vertex_t`
+Represents a vertex in the graph with potential homotopy classes extending from it.
+- **Fields**:
+  - `int x_s, y_s`: Discrete coordinates of the vertex.
+  - `hom_classes_list_t *hom_classes`: Linked list of homotopy classes associated with this vertex.
+
+#### `hom_class_t`
+Stores data defining a homotopy class.
+- **Fields**:
+  - `Complex Lval`: Descriptor for the homotopy class based on the integral of the obstacle marker function.
+  - `hom_class_t *next`: Pointer to the next homotopy class in a linked list.
+  - `struct hom_vertex *endpoint_vertex`: Pointer to the vertex where this homotopy class ends.
+  - `struct minheap_node *minheap_node`: Pointer to a node in a min-heap, used in priority queues.
+  - `Backtrack_Path *backtrack`: Path associated with this homotopy class, used for backtracking in pathfinding.
+  - `float g_score, f_score`: Cost metrics used in A* and similar algorithms.
+  - `bool is_evaluated, updated`: Flags to manage the state within algorithms.
+
+#### `Backtrack_Path`
+Holds a path and its associated costs.
+- **Fields**:
+  - `int total_edges`: Number of edges in the path.
+  - `float **point_list`: List of points (coordinates) making up the path.
+  - `float absolute_length, g_image_riemann_tot`: Metrics evaluating the path's length and integral cost.
+
+### Functions
+
+#### `hom_vertex_new`
+**Prototype:**
+```c
+hom_vertex_t *hom_vertex_new(int x_s, int y_s, int max_hom_classes, bool (*less_than)(hom_class_t *, hom_class_t *));
+```
+- **Description**: Constructs a new homotopy vertex with an empty list of homotopy classes.
+- **Parameters**:
+  - `x_s, y_s`: Coordinates of the vertex.
+  - `max_hom_classes`: Maximum number of homotopy classes the vertex can hold.
+  - `less_than`: Comparison function used for ordering homotopy classes.
+- **Returns**: Pointer to the newly created `hom_vertex_t`.
+
+#### `hom_class_new`
+**Prototype:**
+```c
+hom_class_t *hom_class_new(hom_vertex_t *endpoint_vertex, Complex Lval);
+```
+- **Description**: Creates a new homotopy class with a specified endpoint vertex and descriptor.
+- **Parameters**:
+  - `endpoint_vertex`: Vertex at the end of the homotopy class.
+  - `Lval`: Complex descriptor of the homotopy class.
+- **Returns**: Pointer to the newly created `hom_class_t`.
+
+#### `hom_class_free`
+**Prototype:**
+```c
+void hom_class_free(hom_class_t *hc);
+```
+- **Description**: Frees the memory allocated for a homotopy class, including its associated backtrack path.
+- **Parameters**:
+  - `hc`: Homotopy class to free.
+
+#### `expand_backtrack`
+**Prototype:**
+```c
+void expand_backtrack(Params *params, hom_class_t *hom_class);
+```
+- **Description**: Expands the backtrack path for a given homotopy class using stored homotopy class information.
+- **Parameters**:
+  - `params`: Parameters of the environment.
+  - `hom_class`: Homotopy class to expand.
+
+#### `write_path`
+**Prototype:**
+```c
+void write_path(hom_class_t *hom_class, Config *config, char *filepath);
+```
+- **Description**: Writes the points of a homotopy class's path to a JSON file, formatted for visualization.
+- **Parameters**:
+  - `hom_class`: Homotopy class containing the path.
+  - `config`: Configuration struct containing cost function coefficients.
+  - `filepath`: Path to the output JSON file.
+
+#### `free_backtrack`
+**Prototype:**
+```c
+void free_backtrack(hom_class_t *hom_class);
+```
+- **Description**: Frees the memory allocated for the backtrack path of a homotopy class.
+- **Parameters**:
+  - `hom_class`: Homotopy class whose backtrack path is to be freed.
+
+### Usage
+This module is used extensively in pathfinding algorithms where paths must be differentiated based
+
+ on their traversal of complex environments. Homotopy classes provide a method to keep track of paths that are topologically distinct due to obstacles, which is crucial for applications like robotic navigation and simulation.
+
+This documentation should be integrated with specific details on how each function interacts with other modules, especially in terms of data handling and memory management, to ensure that the system operates efficiently and correctly.
+
+
+
+
 
 ## Minimum Heap Priority Queue Module
 
@@ -154,6 +259,7 @@ Returns the number of elements in the open set.
 
 ### Notes on Implementation
 This module leverages function pointers to achieve type generality, allowing it to be used with any data type that implements the required interface. The use of dynamic memory allocation and careful management of indices and keys allows the heap to operate efficiently even as elements are added, removed, or updated.
+
 
 
 ## Obstacle Marker Module
