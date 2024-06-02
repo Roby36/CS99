@@ -1,6 +1,5 @@
 
 
-
 ## Cost and Heuristic Functions Module
 
 ### Overview
@@ -15,10 +14,10 @@ float len(int x_1, int y_1, int x_2, int y_2, Params *params);
 ```
 - **Description**: Calculates the absolute distance between two adjacent points on a grid, scaled to map units.
 - **Formula**: 
-  \[
-  \text{len} = s \cdot D_{\text{adjacent}}(x_1, y_1, x_2, y_2)
-  \]
-  Here, \( D_{\text{adjacent}} \) represents the Euclidean distance between the points, and \( s \) is the scaling factor from the `Params` struct.
+  ```
+  len = s * D_adjacent(x_1, y_1, x_2, y_2)
+  ```
+  Here, `D_adjacent` represents the Euclidean distance between the points, and `s` is the scaling factor from the `Params` struct.
 - **Parameters**:
   - `x_1, y_1, x_2, y_2`: Coordinates of two adjacent points on the grid.
   - `params`: Contains the scaling factor `s` for the grid size.
@@ -31,10 +30,10 @@ float g_image_riemann_sum(int x_1, int y_1, int x_2, int y_2, Params *params);
 ```
 - **Description**: Computes the Riemann sum of an uncertainty function `g` between two adjacent points.
 - **Formula**:
-  \[
-  U = r \cdot D_{\text{adjacent}}(x_1, y_1, x_2, y_2) \cdot \sum_{i=0}^{s/r} g_{\text{image}}[y_0 + i \cdot dy][x_0 + i \cdot dx]
-  \]
-  where \( r \) and \( s \) are scaling factors, \( D_{\text{adjacent}} \) is the distance function, and \( g_{\text{image}} \) contains precomputed values of the function `g`.
+  ```
+  U = r * D_adjacent(x_1, y_1, x_2, y_2) * Σ(i=0 to s/r) g_image[y_0 + i * dy][x_0 + i * dx]
+  ```
+  where `r` and `s` are scaling factors, `D_adjacent` is the distance function, and `g_image` contains precomputed values of the function `g`.
 - **Parameters**:
   - `x_1, y_1, x_2, y_2`: Coordinates of two adjacent points.
   - `params`: Contains scaling factors and the `g_image` matrix.
@@ -47,10 +46,10 @@ float edge_cost(int x_1, int y_1, int x_2, int y_2, Params *params, Config *conf
 ```
 - **Description**: Combines the uncertainty accumulation and path length to compute the overall cost of moving between two points.
 - **Formula**:
-  \[
-  C = a \cdot U + b \cdot L
-  \]
-  where \( U \) is the uncertainty accumulation calculated by `g_image_riemann_sum`, \( L \) is the length from `len`, and \( a \) and \( b \) are coefficients from the `Config` struct.
+  ```
+  C = a * U + b * L
+  ```
+  where `U` is the uncertainty accumulation calculated by `g_image_riemann_sum`, `L` is the length from `len`, and `a` and `b` are coefficients from the `Config` struct.
 - **Parameters**:
   - `x_1, y_1, x_2, y_2`: Coordinates of two adjacent points.
   - `params`: Environment parameters used in sub-calculations.
@@ -64,34 +63,31 @@ float heuristic(int x_n, int y_n, int x_g, int y_g, Params *params, Config *conf
 ```
 - **Description**: Calculates a heuristic estimate of the cost from a current point to the goal, favoring diagonal movement.
 - **Formula**:
-  \[
-  H = b \cdot s \cdot ((\sqrt{2} - 1) \cdot \min(dx, dy) + \max(dx, dy))
-  \]
-  where \( dx \) and \( dy \) are the absolute differences in grid steps between the current point and the goal, \( s \) is the grid scaling factor, and \( b \) is the coefficient for path length in the cost function.
+  ```
+  H = b * s * ((SQRT2 - 1) * min(dx, dy) + max(dx, dy))
+  ```
+  where `dx` and `dy` are the absolute differences in grid steps between the current point and the goal, `s` is the grid scaling factor, and `b` is the coefficient for path length in the cost function.
 - **Parameters**:
   - `x_n, y_n`: Current point on the grid.
   - `x_g, y_g`: Goal point.
   - `params`: Contains scaling factors for the grid.
   - `config`: Contains the weight `b` for the path length in the cost function.
-- **Returns**: The heuristic cost estimate from the
-
- current point to the goal.
+- **Returns**: The heuristic cost estimate from the current point to the goal.
 
 #### `zero_heuristic`
 **Prototype:**
 ```c
 float zero_heuristic(int x_n, int y_n, int x_g, int y_g, Params *params, Config *config);
 ```
-- **Description**: Provides a zero-value heuristic, effectively transforming A* into Dijkstra's algorithm. This is used when an unbiased exploration of all paths is required.
+- **Description**: Provides a zero-value heuristic, effectively transforming A*
+
+ into Dijkstra's algorithm. This is used when an unbiased exploration of all paths is required.
 - **Parameters**:
   - `x_n, y_n, x_g, y_g`: Coordinates for the current and goal points (used to match the function signature required by A*).
   - `params` and `config`: Included to conform to the required function signature.
 - **Returns**: Always returns `0.0`.
 
 This documentation details how each function contributes to the pathfinding process, using precise mathematical formulas to clarify the computation of distances, costs, and heuristic estimates.
-
-
-
 
 ## Homotopy Classes Module
 
