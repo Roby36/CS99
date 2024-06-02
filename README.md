@@ -1,5 +1,27 @@
 
 
+### A_star_homotopies 
+
+#### Overview
+`A_star_homotopies` implements the A* search algorithm to find paths through a grid, accounting for homotopy classes. This function is designed for scenarios where paths are influenced by obstacles and where multiple distinct paths (homotopies) to the same endpoint are required. The function updates a list of target homotopy classes based on the paths found to the goal.
+
+#### Inputs
+- `Params`: Struct containing environmental data like grid dimensions, obstacle locations, and scaling factors.
+- `Config`: Contains weights `a` and `b` for the cost function influencing uncertainty and path length respectively.
+- `heuristic function pointer`: Function to estimate the cost from the current node to the goal.
+- `cost function pointer`: Function to calculate the actual cost between two nodes.
+- `float_tol`: Tolerance for floating-point comparisons.
+- Additional parameters specific to handling homotopy classes:
+  - `abs_tol`: Tolerance for comparing real and imaginary components of complex numbers describing homotopy classes.
+  - `F_t`: Obstacle marker function parameters.
+  - `target_hom_classes_ptr`: Pointer to the list of target homotopy classes to be updated.
+  - `max_hom_classes`: Maximum number of homotopy classes to search.
+  - `json_filepath`: Path to the JSON file where paths are logged.
+
+#### Outputs
+- Updates the `target_hom_classes_ptr` with newly detected or updated homotopy classes leading to the goal.
+
+
 ## Cost and Heuristic Functions Module
 
 ### Overview
