@@ -1,6 +1,107 @@
 
 
+Based on the `obstacle_marker.h` interface and the provided implementation, here is a concise and enhanced Markdown documentation for the main public functions of the "obstacle_marker" module. I'll also comment on the accuracy of existing comments in the code.
 
+## Obstacle Marker Module Documentation
+
+### Overview
+The Obstacle Marker module leverages complex analysis to calculate properties and interactions regarding obstacles in a given environment. It manages the calculation of path integrals and L-values which are essential for determining homotopy classes in path planning algorithms.
+
+### Functions
+
+#### `initialize_obstacle_marker_func_params`
+**Prototype:**
+```c
+F_t * initialize_obstacle_marker_func_params(Params * params, float float_tol);
+```
+
+**Description:**
+Initializes and returns a pointer to an `F_t` structure containing all necessary parameters and precomputed values for obstacle marker calculations. This function integrates several private helper functions to extract parameters, compute residues, and calculate L-values.
+
+**Parameters:**
+- `params`: Pointer to a `Params` structure containing configuration parameters extracted from a JSON file.
+- `float_tol`: A floating-point tolerance used for numerical comparisons.
+
+**Returns:**
+- Pointer to the initialized `F_t` structure.
+
+**Example Usage:**
+```c
+Params *params = load_json("config.json");
+float tol = 0.001;
+F_t *F = initialize_obstacle_marker_func_params(params, tol);
+```
+
+#### `delete_obstacle_marker_func_params`
+**Prototype:**
+```c
+void delete_obstacle_marker_func_params(F_t * F);
+```
+
+**Description:**
+Frees all memory associated with an `F_t` structure initialized by `initialize_obstacle_marker_func_params`. This includes all internal matrices and dynamic arrays.
+
+**Parameters:**
+- `F`: Pointer to an `F_t` structure to be freed.
+
+**Returns:**
+- None.
+
+**Example Usage:**
+```c
+delete_obstacle_marker_func_params(F);
+```
+
+#### `get_Lval`
+**Prototype:**
+```c
+Complex get_Lval(F_t * F, int x_c, int y_c, int x_n, int y_n);
+```
+
+**Description:**
+Retrieves the complex L-value corresponding to the path integral contribution between two neighboring grid points, specified by their coordinates. This function ensures the points are accessible and within valid ranges before fetching the precomputed value.
+
+**Parameters:**
+- `F`: Pointer to an initialized `F_t` structure.
+- `x_c`: X-coordinate of the current grid point.
+- `y_c`: Y-coordinate of the current grid point.
+- `x_n`: X-coordinate of the neighboring grid point.
+- `y_n`: Y-coordinate of the neighboring grid point.
+
+**Returns:**
+- Complex L-value of the obstacle marker function between the specified points.
+
+**Example Usage:**
+```c
+Complex L_value = get_Lval(F, 0, 0, 1, 1);
+```
+
+#### `calculate_path_integral`
+**Prototype:**
+```c
+Complex calculate_path_integral(float ** test_path, int num_points, F_t * F);
+```
+
+**Description:**
+Calculates the complex path integral along a specified path using the obstacle marker function parameters. This function sums up the contributions between consecutive points along the path.
+
+**Parameters:**
+- `test_path`: 2D array of float coordinates representing the path.
+- `num_points`: Number of points in the path.
+- `F`: Pointer to an initialized `F_t` structure.
+
+**Returns:**
+- Complex-valued result of the path integral.
+
+**Example Usage:**
+```c
+float **path = {{0.0, 0.0}, {1.0, 1.0}};
+int points = 2;
+Complex integral = calculate_path_integral(path, points, F);
+```
+
+### Remarks
+The module's implementation includes a significant amount of pre-computation during initialization, which may result in longer startup times but will optimize runtime performance during actual operation.
 
 
 # Parser Module 
