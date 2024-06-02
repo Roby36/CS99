@@ -18,7 +18,7 @@ To build and run the `boundary_optimization` program and various unit tests, fol
 
 2. **Compile Unit Tests**:
    - Several unit tests are available for different modules of the project. Each test can be compiled using specific Makefile targets:
-     - **A* Algorithm Unit Test**:
+     - **A star Algorithm Unit Test**:
        ```sh
        make astar_ut
        ```
